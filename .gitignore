@@ -4,3 +4,4 @@ dist
 .vite
 .env.local
 .env.*
+!.env.example

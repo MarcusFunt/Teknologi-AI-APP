@@ -1,17 +1,4 @@
-import { useMemo, useState } from 'react';
-
-const sampleEvents = [
-  { date: '2024-09-10', title: 'Design critique', time: '09:30', type: 'meeting' },
-  { date: '2024-09-11', title: 'Engineering sync', time: '11:00', type: 'meeting' },
-  { date: '2024-09-12', title: 'Launch prep', time: '15:00', type: 'milestone' },
-  { date: '2024-09-14', title: 'Team offsite', time: '10:00', type: 'social' },
-  { date: '2024-09-16', title: 'Sprint planning', time: '14:00', type: 'planning' },
-  { date: '2024-09-17', title: 'Customer demo', time: '16:00', type: 'demo' },
-  { date: '2024-09-19', title: 'Wellness hour', time: '12:30', type: 'wellness' },
-  { date: '2024-09-21', title: 'Hackathon', time: '09:00', type: 'social' },
-  { date: '2024-09-24', title: 'Roadmap review', time: '13:30', type: 'planning' },
-  { date: '2024-09-28', title: 'Birthday celebration', time: '17:00', type: 'social' },
-];
+import { useEffect, useMemo, useState } from 'react';
 
 const typeBadges = {
   meeting: { label: 'Meeting', tone: 'primary' },
@@ -40,6 +27,30 @@ function App() {
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events');
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
+        }
+        const data = await response.json();
+        setEvents(data.events || []);
+        setError('');
+      } catch (fetchError) {
+        setError('Unable to load events from the server.');
+        console.error(fetchError);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
 
   const calendarCells = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -67,17 +78,17 @@ function App() {
   const selectedKey = useMemo(() => formatKey(selectedDate), [selectedDate]);
 
   const dayEvents = useMemo(
-    () => sampleEvents.filter((event) => event.date === selectedKey),
-    [selectedKey],
+    () => events.filter((event) => event.date === selectedKey),
+    [events, selectedKey],
   );
 
   const upcomingEvents = useMemo(() => {
     const nowKey = formatKey(today);
-    return sampleEvents
+    return events
       .filter((event) => event.date >= nowKey)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 4);
-  }, []);
+  }, [events]);
 
   const isToday = (date) => formatKey(date) === formatKey(today);
 
@@ -114,11 +125,11 @@ function App() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat">
-            <span className="label">This month</span>
-            <strong>{sampleEvents.length}</strong>
-            <span className="hint">moments scheduled</span>
-          </div>
+            <div className="stat">
+              <span className="label">This month</span>
+              <strong>{isLoading ? '…' : events.length}</strong>
+              <span className="hint">moments scheduled</span>
+            </div>
           <div className="stat">
             <span className="label">Focus streak</span>
             <strong>7 days</strong>
@@ -157,7 +168,7 @@ function App() {
               }
 
               const key = formatKey(cell);
-              const hasEvents = sampleEvents.some((event) => event.date === key);
+              const hasEvents = events.some((event) => event.date === key);
 
               return (
                 <button
@@ -191,7 +202,19 @@ function App() {
             <div className="pill">{dayEvents.length} items</div>
           </div>
 
-          {dayEvents.length === 0 ? (
+          {error ? (
+            <div className="empty-state">
+              <div className="accent" />
+              <p className="title">Could not load events</p>
+              <p className="hint">Check the API server and database connection.</p>
+            </div>
+          ) : isLoading ? (
+            <div className="empty-state">
+              <div className="accent" />
+              <p className="title">Loading events…</p>
+              <p className="hint">Fetching the latest schedule from PostgreSQL.</p>
+            </div>
+          ) : dayEvents.length === 0 ? (
             <div className="empty-state">
               <div className="accent" />
               <p className="title">No events scheduled</p>
@@ -220,6 +243,14 @@ function App() {
               <div className="pill neutral">Auto-sorted</div>
             </div>
             <ul className="timeline">
+              {upcomingEvents.length === 0 && !isLoading && (
+                <li className="timeline-item">
+                  <div>
+                    <p className="title">No upcoming events</p>
+                    <p className="hint">Plan your next milestone to see it here.</p>
+                  </div>
+                </li>
+              )}
               {upcomingEvents.map((event) => {
                 const badge = typeBadges[event.type];
                 return (

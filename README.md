@@ -6,7 +6,17 @@ A minimalist yet expressive calendar experience built with React and Vite. Navig
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env
+```
+
+Provision a PostgreSQL database and set `DATABASE_URL` in `.env` to the connection string. The API
+server will create the `calendar_events` table and seed sample data the first time it connects.
+
+Run the API and frontend in separate terminals:
+
+```bash
+npm run server # starts Express on http://localhost:4000
+npm run dev    # starts Vite with proxying /api to the server
 ```
 
 Then visit the printed local URL (usually `http://localhost:5173`).
@@ -18,5 +28,6 @@ Then visit the printed local URL (usually `http://localhost:5173`).
 - `npm run lint` — run ESLint with the included modern defaults
 
 ## Notes
-- Events are seeded from `sampleEvents` in `src/App.jsx` for the demo view.
+- Events are stored in PostgreSQL via the Express API (`/api/events`); the server seeds sample data
+  on first run.
 - Styling lives in `src/index.css`; typography uses the Inter font.
