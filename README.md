@@ -22,6 +22,18 @@ npm run dev    # starts Express on 4000 and Vite on 5173 with /api proxying
 
 Then visit the printed local URL (usually `http://localhost:5173`).
 
+## Run with Docker
+
+The repository includes a `docker-compose.yml` that runs the app alongside PostgreSQL.
+
+```bash
+docker compose up --build
+```
+
+The stack exposes Vite on `http://localhost:5173` and the API on `http://localhost:4000`. The
+PostgreSQL service is available on port `5432` with credentials `postgres/postgres` and a database
+named `calendar`. Update `docker-compose.yml` if you need different credentials.
+
 ## Scripts
 - `npm run dev` — start the Vite dev server
 - `npm run build` — create a production build in `dist/`
