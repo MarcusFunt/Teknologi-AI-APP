@@ -11,6 +11,8 @@ cp .env.example .env
 
 Provision a PostgreSQL database and set `DATABASE_URL` in `.env` to the connection string. The API
 server will create the `calendar_events` table and seed sample data the first time it connects.
+Add `JWT_SECRET` to `.env` for signing login tokens (a default is used for local development if
+omitted).
 
 Run the API and frontend in separate terminals:
 

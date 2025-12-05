@@ -30,11 +30,64 @@ function App() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken') || '');
+  const [authError, setAuthError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+
+  useEffect(() => {
+    const bootstrapAuth = async () => {
+      if (!authToken) {
+        setIsAuthenticating(false);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!response.ok) {
+          throw new Error('Session invalid');
+        }
+
+        const data = await response.json();
+        setUser(data.user);
+        setAuthError('');
+      } catch (fetchError) {
+        console.error(fetchError);
+        localStorage.removeItem('authToken');
+        setAuthToken('');
+        setUser(null);
+        setAuthError('Your session expired. Please sign in again.');
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+
+    bootstrapAuth();
+  }, [authToken]);
 
   useEffect(() => {
     const fetchEvents = async () => {
+      if (isAuthenticating) {
+        return;
+      }
+
+      if (!authToken || !user) {
+        setIsLoading(false);
+        setEvents([]);
+        return;
+      }
+
       try {
-        const response = await fetch('/api/events');
+        setIsLoading(true);
+        const response = await fetch('/api/events', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
@@ -50,7 +103,7 @@ function App() {
     };
 
     fetchEvents();
-  }, []);
+  }, [authToken, user, isAuthenticating]);
 
   const calendarCells = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -91,6 +144,8 @@ function App() {
   }, [events]);
 
   const isToday = (date) => formatKey(date) === formatKey(today);
+  const isAuthenticated = Boolean(user);
+  const scheduledCount = isAuthenticated ? (isLoading ? '…' : events.length) : '—';
 
   const changeMonth = (offset) => {
     setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
@@ -105,6 +160,55 @@ function App() {
   const handleDayClick = (date) => {
     if (!date) return;
     setSelectedDate(date);
+  };
+
+  const handleAuthInput = (field, value) => {
+    setAuthForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAuthSubmit = async (event) => {
+    event.preventDefault();
+    setAuthError('');
+
+    const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const payload = {
+      email: authForm.email,
+      password: authForm.password,
+    };
+
+    if (authMode === 'register') {
+      payload.name = authForm.name || authForm.email;
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to authenticate');
+      }
+
+      localStorage.setItem('authToken', data.token);
+      setAuthToken(data.token);
+      setUser(data.user);
+      setAuthForm({ name: '', email: '', password: '' });
+      setAuthError('');
+      setError('');
+    } catch (authIssue) {
+      setAuthError(authIssue.message);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setAuthToken('');
+    setUser(null);
+    setEvents([]);
+    setError('');
   };
 
   return (
@@ -124,16 +228,93 @@ function App() {
             <div className="tag">Interoperable UI • Minimal setup</div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="hero-side">
+          <div className="auth-card">
+            {isAuthenticated ? (
+              <div className="signed-in">
+                <p className="label subtle">Signed in</p>
+                <h3>{user.name}</h3>
+                <p className="hint">{user.email}</p>
+                <button className="ghost full" type="button" onClick={handleLogout}>
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="auth-toggle">
+                  <button
+                    type="button"
+                    className={authMode === 'login' ? 'active' : ''}
+                    onClick={() => setAuthMode('login')}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    className={authMode === 'register' ? 'active' : ''}
+                    onClick={() => setAuthMode('register')}
+                  >
+                    Create account
+                  </button>
+                </div>
+                <form className="auth-form" onSubmit={handleAuthSubmit}>
+                  {authMode === 'register' && (
+                    <label htmlFor="name">
+                      <span>Name</span>
+                      <input
+                        id="name"
+                        type="text"
+                        value={authForm.name}
+                        onChange={(event) => handleAuthInput('name', event.target.value)}
+                        autoComplete="name"
+                      />
+                    </label>
+                  )}
+                  <label htmlFor="email">
+                    <span>Email</span>
+                    <input
+                      id="email"
+                      type="email"
+                      required
+                      value={authForm.email}
+                      onChange={(event) => handleAuthInput('email', event.target.value)}
+                      autoComplete="email"
+                    />
+                  </label>
+                  <label htmlFor="password">
+                    <span>Password</span>
+                    <input
+                      id="password"
+                      type="password"
+                      required
+                      minLength={8}
+                      value={authForm.password}
+                      onChange={(event) => handleAuthInput('password', event.target.value)}
+                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                    />
+                  </label>
+                  {authError && <p className="auth-error">{authError}</p>}
+                  <button className="primary" type="submit" disabled={isAuthenticating}>
+                    {authMode === 'login' ? 'Sign in' : 'Create account'}
+                  </button>
+                </form>
+                <p className="hint">Securely access your saved schedule across devices.</p>
+              </>
+            )}
+          </div>
+          <div className="stat-card">
             <div className="stat">
               <span className="label">This month</span>
-              <strong>{isLoading ? '…' : events.length}</strong>
+              <strong>{scheduledCount}</strong>
               <span className="hint">moments scheduled</span>
             </div>
-          <div className="stat">
-            <span className="label">Focus streak</span>
-            <strong>7 days</strong>
-            <span className="hint">kept up to date</span>
+            <div className="stat">
+              <span className="label">Session</span>
+              <strong>{isAuthenticated ? 'Active' : 'Guest'}</strong>
+              <span className="hint">
+                {isAuthenticating ? 'Checking…' : isAuthenticated ? 'Signed in' : 'Create an account'}
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -202,7 +383,13 @@ function App() {
             <div className="pill">{dayEvents.length} items</div>
           </div>
 
-          {error ? (
+          {!isAuthenticated ? (
+            <div className="empty-state">
+              <div className="accent" />
+              <p className="title">Sign in to view events</p>
+              <p className="hint">Create an account or log in to sync your calendar.</p>
+            </div>
+          ) : error ? (
             <div className="empty-state">
               <div className="accent" />
               <p className="title">Could not load events</p>
@@ -243,18 +430,23 @@ function App() {
               <div className="pill neutral">Auto-sorted</div>
             </div>
             <ul className="timeline">
-              {upcomingEvents.length === 0 && !isLoading && (
+              {(!isAuthenticated || upcomingEvents.length === 0) && !isLoading && (
                 <li className="timeline-item">
                   <div>
-                    <p className="title">No upcoming events</p>
-                    <p className="hint">Plan your next milestone to see it here.</p>
+                    <p className="title">{isAuthenticated ? 'No upcoming events' : 'Sign in to sync'}</p>
+                    <p className="hint">
+                      {isAuthenticated
+                        ? 'Plan your next milestone to see it here.'
+                        : 'Authentication keeps your dates private.'}
+                    </p>
                   </div>
                 </li>
               )}
-              {upcomingEvents.map((event) => {
-                const badge = typeBadges[event.type];
-                return (
-                  <li key={`${event.date}-${event.title}`} className="timeline-item">
+              {isAuthenticated &&
+                upcomingEvents.map((event) => {
+                  const badge = typeBadges[event.type];
+                  return (
+                    <li key={`${event.date}-${event.title}`} className="timeline-item">
                     <div className="time">
                       {new Date(event.date).toLocaleDateString('default', {
                         month: 'short',
