@@ -14,11 +14,10 @@ server will create the `calendar_events` table and seed sample data the first ti
 Add `JWT_SECRET` to `.env` for signing login tokens (a default is used for local development if
 omitted).
 
-Run the API and frontend in separate terminals:
+Run the API and frontend together with:
 
 ```bash
-npm run server # starts Express on http://localhost:4000
-npm run dev    # starts Vite with proxying /api to the server
+npm run dev    # starts Express on 4000 and Vite on 5173 with /api proxying
 ```
 
 Then visit the printed local URL (usually `http://localhost:5173`).
