@@ -1,12 +1,14 @@
-import { query } from './db.js';
+import { isInMemory, query } from './db.js';
 
 export const ensureAuthSchema = async () => {
-  await query('CREATE EXTENSION IF NOT EXISTS citext;');
+  if (!isInMemory) {
+    await query('CREATE EXTENSION IF NOT EXISTS citext;');
+  }
   await query(`
     CREATE TABLE IF NOT EXISTS auth_users (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      email CITEXT UNIQUE NOT NULL,
+      email ${isInMemory ? 'TEXT' : 'CITEXT'} UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
