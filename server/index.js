@@ -112,13 +112,15 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
 
 app.get('/api/events', authenticate, async (req, res) => {
   const { date } = req.query;
-  const events = date ? await getEventsByDate(date) : await getAllEvents();
+  const events = date
+    ? await getEventsByDate(req.userId, date)
+    : await getAllEvents(req.userId);
   res.json({ events });
 });
 
 app.get('/api/events/upcoming', authenticate, async (req, res) => {
   const limit = Number(req.query.limit) || 5;
-  const events = await getUpcomingEvents(limit);
+  const events = await getUpcomingEvents(req.userId, limit);
   res.json({ events });
 });
 

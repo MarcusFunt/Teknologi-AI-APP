@@ -1,10 +1,12 @@
 import { readJsonFile, writeJsonFile } from './jsonStorage.js';
 import { sampleEvents } from './sampleEvents.js';
 
-const EVENTS_FILE = 'events.json';
+const EVENTS_FILE = 'events';
 
-const loadEvents = () => readJsonFile(EVENTS_FILE, []);
-const saveEvents = (events) => writeJsonFile(EVENTS_FILE, events);
+const getEventsFileName = (userId) => `${EVENTS_FILE}-${userId}.json`;
+
+const loadEvents = (userId) => readJsonFile(getEventsFileName(userId), []);
+const saveEvents = (userId, events) => writeJsonFile(getEventsFileName(userId), events);
 
 const normalizeEvent = (event) => ({
   id: event.id,
@@ -22,15 +24,7 @@ const sortEvents = (events) =>
     return a.event_date.localeCompare(b.event_date);
   });
 
-export const ensureSchema = async () => {
-  const events = await loadEvents();
-  await saveEvents(events);
-};
-
-export const seedIfEmpty = async () => {
-  const events = await loadEvents();
-  if (events.length > 0) return;
-
+const seedUserEvents = async (userId) => {
   const seeded = sampleEvents.map((event, index) => ({
     id: index + 1,
     title: event.title,
@@ -39,25 +33,42 @@ export const seedIfEmpty = async () => {
     event_type: event.type,
   }));
 
-  await saveEvents(seeded);
+  await saveEvents(userId, seeded);
+  return seeded;
 };
 
-export const getAllEvents = async () => {
-  const events = await loadEvents();
+const loadOrSeedEvents = async (userId) => {
+  const events = await loadEvents(userId);
+  if (events.length === 0) {
+    return seedUserEvents(userId);
+  }
+  return events;
+};
+
+export const ensureSchema = async () => {
+  // Data directory is created lazily by jsonStorage helpers.
+};
+
+export const seedIfEmpty = async () => {
+  // Seeding now happens per user when they first access their calendar.
+};
+
+export const getAllEvents = async (userId) => {
+  const events = await loadOrSeedEvents(userId);
   return sortEvents(events).map(normalizeEvent);
 };
 
-export const getEventsByDate = async (date) => {
-  const events = await loadEvents();
+export const getEventsByDate = async (userId, date) => {
+  const events = await loadOrSeedEvents(userId);
   const filtered = events.filter((event) => event.event_date === date);
   return sortEvents(filtered).map(normalizeEvent);
 };
 
-export const getUpcomingEvents = async (limit = 5) => {
+export const getUpcomingEvents = async (userId, limit = 5) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const events = await loadEvents();
+  const events = await loadOrSeedEvents(userId);
   const filtered = events.filter((event) => new Date(event.event_date) >= today);
   return sortEvents(filtered)
     .slice(0, limit)
