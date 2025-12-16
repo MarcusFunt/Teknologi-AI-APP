@@ -19,6 +19,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const app = express();
+const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || 'dev-insecure-secret';
 const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${port}`;
@@ -188,8 +189,8 @@ const start = async () => {
   await ensureSchema();
   await seedIfEmpty();
 
-  app.listen(port, () => {
-    console.log(`API server listening on http://localhost:${port}`);
+  app.listen(port, host, () => {
+    console.log(`API server listening on http://${host}:${port}`);
   });
 };
 
