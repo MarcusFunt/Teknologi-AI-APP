@@ -139,6 +139,14 @@ body {
   transform: translateY(-1px);
 }
 
+.primary.ghosty {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(124, 155, 255, 0.4);
+  box-shadow: none;
+  padding: 10px 12px;
+}
+
 .ghost.full {
   width: 100%;
   text-align: center;
@@ -271,6 +279,12 @@ button:focus-visible {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .panel h2,
@@ -496,6 +510,77 @@ button:focus-visible {
   color: var(--muted);
   font-size: 13px;
   min-width: 64px;
+}
+
+.ai-dialog {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-dialog.open {
+  display: flex;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-form {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-form textarea {
+  min-height: 110px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 12px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.ai-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ai-result {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.ai-ops {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.ai-ops li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ai-ops.compact li {
+  padding: 6px 8px;
 }
 
 @media (max-width: 960px) {

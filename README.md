@@ -31,6 +31,29 @@ docker compose up --build
 
 The stack exposes Vite on `http://localhost:5173` and the API on `http://localhost:4000`.
 
+### AI copilot & Ollama
+
+LangChain.js powers an on-demand AI editor that can rewrite events and apply the changes via a
+structured JSON schema. The service expects a local Ollama host with the
+`meta-llama/Llama-3.2-1B-Instruct:novita` model available.
+
+Using Docker Compose, the included `ollama` service is already wired to the app:
+
+```bash
+docker compose up --build -d
+docker compose exec ollama ollama pull meta-llama/Llama-3.2-1B-Instruct:novita
+```
+
+When running outside Docker, set `OLLAMA_BASE_URL` to your host (default: `http://localhost:11434`).
+The Express API calls itself (`API_BASE_URL`) to fetch and patch events when the AI endpoint runs.
+
+### API helpers
+
+- `POST /api/ai/edit` — generates structured calendar edits via LangChain + Ollama, then applies
+  them.
+- `PATCH /api/events/bulk` — apply a batch of create/update/delete operations for the authenticated
+  user.
+
 ## Scripts
 - `npm run dev` — start the Vite dev server
 - `npm run build` — create a production build in `dist/`
