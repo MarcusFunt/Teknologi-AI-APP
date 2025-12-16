@@ -9,3 +9,21 @@ services:
     environment:
       - PORT=4000
       - JWT_SECRET=dev-local-secret
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - API_BASE_URL=http://localhost:4000
+    volumes:
+      - ./server/data:/app/server/data
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+
+volumes:
+  ollama:

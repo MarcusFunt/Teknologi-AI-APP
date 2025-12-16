@@ -36,6 +36,11 @@ function App() {
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken') || '');
   const [authError, setAuthError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiResult, setAiResult] = useState(null);
+  const [aiError, setAiError] = useState('');
+  const [isAiRunning, setIsAiRunning] = useState(false);
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -71,39 +76,39 @@ function App() {
     bootstrapAuth();
   }, [authToken]);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      if (isAuthenticating) {
-        return;
-      }
+  const refreshEvents = useCallback(async () => {
+    if (isAuthenticating) {
+      return;
+    }
 
-      if (!authToken || !user) {
-        setIsLoading(false);
-        setEvents([]);
-        return;
-      }
+    if (!authToken || !user) {
+      setIsLoading(false);
+      setEvents([]);
+      return;
+    }
 
-      try {
-        setIsLoading(true);
-        const response = await fetch('/api/events', {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch events');
-        }
-        const data = await response.json();
-        setEvents(data.events || []);
-        setError('');
-      } catch (fetchError) {
-        setError('Unable to load events from the server.');
-        console.error(fetchError);
-      } finally {
-        setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/events', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
       }
-    };
-
-    fetchEvents();
+      const data = await response.json();
+      setEvents(data.events || []);
+      setError('');
+    } catch (fetchError) {
+      setError('Unable to load events from the server.');
+      console.error(fetchError);
+    } finally {
+      setIsLoading(false);
+    }
   }, [authToken, user, isAuthenticating]);
+
+  useEffect(() => {
+    refreshEvents();
+  }, [refreshEvents]);
 
   const calendarCells = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -211,6 +216,58 @@ function App() {
     setUser(null);
     setEvents([]);
     setError('');
+    setIsAiOpen(false);
+    setAiResult(null);
+    setAiPrompt('');
+  };
+
+  const openAiEditor = () => {
+    if (!isAuthenticated) {
+      setAuthError('Sign in to use AI editing.');
+      return;
+    }
+
+    setIsAiOpen(true);
+    setAiError('');
+  };
+
+  const closeAiEditor = () => {
+    setIsAiOpen(false);
+    setAiError('');
+  };
+
+  const handleAiSubmit = async (event) => {
+    event.preventDefault();
+    if (!aiPrompt.trim() || !isAuthenticated) {
+      return;
+    }
+
+    setIsAiRunning(true);
+    setAiError('');
+
+    try {
+      const response = await fetch('/api/ai/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ prompt: aiPrompt, focusDate: selectedKey }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'AI request failed');
+      }
+
+      setAiResult(data);
+      setAiPrompt('');
+      await refreshEvents();
+    } catch (aiIssue) {
+      setAiError(aiIssue.message);
+    } finally {
+      setIsAiRunning(false);
+    }
   };
 
   return (
@@ -382,7 +439,12 @@ function App() {
                 })}
               </h3>
             </div>
-            <div className="pill">{dayEvents.length} items</div>
+            <div className="panel-actions">
+              <div className="pill">{dayEvents.length} items</div>
+              <button type="button" className="primary ghosty" onClick={openAiEditor}>
+                Edit with AI
+              </button>
+            </div>
           </div>
 
           {!isAuthenticated ? (
@@ -461,9 +523,82 @@ function App() {
                     </div>
                     {badge && <span className={`badge muted ${badge.tone}`}>{badge.label}</span>}
                   </li>
-                );
-              })}
+                  );
+                })}
             </ul>
+          </div>
+
+          <div className={`ai-dialog ${isAiOpen ? 'open' : ''}`}>
+            <div className="ai-header">
+              <div>
+                <p className="label subtle">AI calendar copilot</p>
+                <p className="title">Describe edits or ask for adjustments</p>
+              </div>
+              <button type="button" className="ghost" onClick={closeAiEditor}>
+                Close
+              </button>
+            </div>
+
+            <form className="ai-form" onSubmit={handleAiSubmit}>
+              <textarea
+                value={aiPrompt}
+                onChange={(event) => setAiPrompt(event.target.value)}
+                placeholder={
+                  isAuthenticated
+                    ? 'e.g. Move the design critique to 10:30 and add a prep session tomorrow.'
+                    : 'Sign in to ask the assistant to edit your calendar.'
+                }
+                disabled={!isAuthenticated || isAiRunning}
+              />
+              {aiError && <p className="auth-error">{aiError}</p>}
+              <div className="ai-actions">
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => setAiPrompt('')}
+                  disabled={isAiRunning}
+                >
+                  Clear
+                </button>
+                <button className="primary" type="submit" disabled={!isAuthenticated || isAiRunning}>
+                  {isAiRunning ? 'Thinking…' : 'Send to AI'}
+                </button>
+              </div>
+            </form>
+
+            {aiResult?.plan && (
+              <div className="ai-result">
+                <p className="label subtle">AI plan</p>
+                <p className="title">{aiResult.plan.summary}</p>
+                <ul className="ai-ops">
+                  {aiResult.plan.operations?.map((operation, index) => (
+                    <li key={`${operation.action}-${operation.id || index}`}>
+                      <strong>{operation.action}</strong>
+                      <span>
+                        {[operation.title, operation.date, operation.time, operation.type]
+                          .filter(Boolean)
+                          .join(' • ')}
+                        {operation.id ? ` (id ${operation.id})` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {aiResult?.patchResult?.results && (
+              <div className="ai-result">
+                <p className="label subtle">Applied changes</p>
+                <ul className="ai-ops compact">
+                  {aiResult.patchResult.results.map((result, index) => (
+                    <li key={`${result.status}-${index}`}>
+                      <strong>{result.status}</strong>
+                      <span>{result.reason || result.event?.title || 'Operation handled'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
       </main>
