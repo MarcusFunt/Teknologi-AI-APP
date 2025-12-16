@@ -1,0 +1,14 @@
+
+> teknologi-ai-app@0.0.0 dev
+> concurrently -k "npm run server" "vite"
+
+[0]
+[0] > teknologi-ai-app@0.0.0 server
+[0] > node server/index.js
+[0]
+[0] API server listening on http://localhost:4000
+[1]
+[1]   VITE v5.4.21  ready in 461 ms
+[1]
+[1]   ➜  Local:   http://localhost:5173/
+[1]   ➜  Network: use --host to expose

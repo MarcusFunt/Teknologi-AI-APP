@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const typeBadges = {
   meeting: { label: 'Meeting', tone: 'primary' },
@@ -130,10 +130,12 @@ function App() {
 
   const selectedKey = useMemo(() => formatKey(selectedDate), [selectedDate]);
 
-  const dayEvents = useMemo(
-    () => events.filter((event) => event.date === selectedKey),
-    [events, selectedKey],
+  const getDayEvents = useCallback(
+    (dayKey) => events.filter((event) => event.date === dayKey),
+    [events],
   );
+
+  const dayEvents = useMemo(() => getDayEvents(selectedKey), [getDayEvents, selectedKey]);
 
   const upcomingEvents = useMemo(() => {
     const nowKey = formatKey(today);
@@ -349,7 +351,7 @@ function App() {
               }
 
               const key = formatKey(cell);
-              const hasEvents = events.some((event) => event.date === key);
+              const dayEvents = getDayEvents(key);
 
               return (
                 <button
@@ -357,11 +359,11 @@ function App() {
                   type="button"
                   className={`day ${selectedKey === key ? 'selected' : ''} ${
                     isToday(cell) ? 'today' : ''
-                  } ${hasEvents ? 'has-events' : ''}`}
+                  } ${dayEvents.length > 0 ? 'has-events' : ''}`}
                   onClick={() => handleDayClick(cell)}
                 >
                   <span className="date-number">{cell.getDate()}</span>
-                  {hasEvents && <span className="dot" />}
+                  {dayEvents.length > 0 && <span className="dot" />}
                 </button>
               );
             })}

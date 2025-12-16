@@ -37,10 +37,14 @@ const seedUserEvents = async (userId) => {
   return seeded;
 };
 
-const loadOrSeedEvents = async (userId) => {
-  const events = await loadEvents(userId);
+const loadOrSeedEvents = async (userId, startDate = null) => {
+  let events = await loadEvents(userId);
   if (events.length === 0) {
-    return seedUserEvents(userId);
+    events = await seedUserEvents(userId);
+  }
+
+  if (startDate) {
+    return events.filter((event) => new Date(event.event_date) >= startDate);
   }
   return events;
 };
@@ -68,9 +72,6 @@ export const getUpcomingEvents = async (userId, limit = 5) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const events = await loadOrSeedEvents(userId);
-  const filtered = events.filter((event) => new Date(event.event_date) >= today);
-  return sortEvents(filtered)
-    .slice(0, limit)
-    .map(normalizeEvent);
+  const events = await loadOrSeedEvents(userId, today);
+  return sortEvents(events).slice(0, limit).map(normalizeEvent);
 };
