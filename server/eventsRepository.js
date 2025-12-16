@@ -1,80 +1,65 @@
-import { query } from './db.js';
+import { readJsonFile, writeJsonFile } from './jsonStorage.js';
 import { sampleEvents } from './sampleEvents.js';
 
-const rowToEvent = (row) => ({
-  id: row.id,
-  date: row.event_date,
-  title: row.title,
-  time: row.event_time,
-  type: row.event_type,
+const EVENTS_FILE = 'events.json';
+
+const loadEvents = () => readJsonFile(EVENTS_FILE, []);
+const saveEvents = (events) => writeJsonFile(EVENTS_FILE, events);
+
+const normalizeEvent = (event) => ({
+  id: event.id,
+  date: event.event_date,
+  title: event.title,
+  time: event.event_time,
+  type: event.event_type,
 });
 
-export const ensureSchema = async () => {
-  await query(`
-    CREATE TABLE IF NOT EXISTS calendar_events (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      event_date DATE NOT NULL,
-      event_time TIME NOT NULL,
-      event_type TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
+const sortEvents = (events) =>
+  [...events].sort((a, b) => {
+    if (a.event_date === b.event_date) {
+      return a.event_time.localeCompare(b.event_time);
+    }
+    return a.event_date.localeCompare(b.event_date);
+  });
 
-  await query(
-    'CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events (event_date);',
-  );
+export const ensureSchema = async () => {
+  const events = await loadEvents();
+  await saveEvents(events);
 };
 
 export const seedIfEmpty = async () => {
-  const existing = await query('SELECT COUNT(*) AS count FROM calendar_events;');
-  const count = Number(existing.rows[0].count);
-  if (count > 0) return;
+  const events = await loadEvents();
+  if (events.length > 0) return;
 
-  const values = sampleEvents.map((event) => [
-    event.title,
-    event.date,
-    event.time,
-    event.type,
-  ]);
+  const seeded = sampleEvents.map((event, index) => ({
+    id: index + 1,
+    title: event.title,
+    event_date: event.date,
+    event_time: event.time,
+    event_type: event.type,
+  }));
 
-  const placeholders = values
-    .map((_, index) => {
-      const offset = index * 4;
-      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`;
-    })
-    .join(', ');
-
-  await query(
-    `INSERT INTO calendar_events (title, event_date, event_time, event_type) VALUES ${placeholders};`,
-    values.flat(),
-  );
+  await saveEvents(seeded);
 };
 
 export const getAllEvents = async () => {
-  const { rows } = await query(
-    'SELECT id, title, event_date, event_time, event_type FROM calendar_events ORDER BY event_date, event_time;',
-  );
-  return rows.map(rowToEvent);
+  const events = await loadEvents();
+  return sortEvents(events).map(normalizeEvent);
 };
 
 export const getEventsByDate = async (date) => {
-  const { rows } = await query(
-    `SELECT id, title, event_date, event_time, event_type FROM calendar_events
-     WHERE event_date = $1
-     ORDER BY event_time;`,
-    [date],
-  );
-  return rows.map(rowToEvent);
+  const events = await loadEvents();
+  const filtered = events.filter((event) => event.event_date === date);
+  return sortEvents(filtered).map(normalizeEvent);
 };
 
 export const getUpcomingEvents = async (limit = 5) => {
-  const { rows } = await query(
-    `SELECT id, title, event_date, event_time, event_type FROM calendar_events
-     WHERE event_date >= CURRENT_DATE
-     ORDER BY event_date, event_time
-     LIMIT $1;`,
-    [limit],
-  );
-  return rows.map(rowToEvent);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const events = await loadEvents();
+  const filtered = events.filter((event) => new Date(event.event_date) >= today);
+  return sortEvents(filtered)
+    .slice(0, limit)
+    .map(normalizeEvent);
 };
