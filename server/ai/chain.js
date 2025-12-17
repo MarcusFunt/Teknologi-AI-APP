@@ -39,7 +39,7 @@ Existing events JSON:
 {format_instructions}`);
 
 const model = new ChatOllama({
-  model: 'meta-llama/Llama-3.2-1B-Instruct:novita',
+  model: 'gemma-3-1b',
   temperature: 0.3,
   baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
 });
