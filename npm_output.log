@@ -1,0 +1,18 @@
+
+> teknologi-ai-app@0.0.0 dev
+> concurrently -k "npm run server" "vite"
+
+[0]
+[0] > teknologi-ai-app@0.0.0 server
+[0] > node server/index.js
+[0]
+[1] Port 5173 is in use, trying another one...
+[1]
+[1]   VITE v5.4.21  ready in 291 ms
+[1]
+[1]   ➜  Local:   http://localhost:5174/
+[1]   ➜  Network: http://192.168.0.2:5174/
+[0] API server listening on http://0.0.0.0:4000
+[0] npm run server exited with code 0
+--> Sending SIGTERM to other processes..
+[1] vite exited with code SIGTERM
