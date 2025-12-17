@@ -1,5 +1,51 @@
+/*
+  Theme variables
+
+  The application supports both light and dark modes by defining two sets of
+  CSS custom properties.  A class of either `.light` or `.dark` on the
+  root element (html) selects which palette is in effect.  Dark mode
+  values mirror the original design while the light palette provides a
+  subtle high‑contrast alternative.  The default theme is dark; when
+  toggled the `.light` class is applied to `document.documentElement`.
+*/
 :root {
-  color-scheme: light;
+  /* dark mode variables */
+  --bg: #0d0f1a;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-strong: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8ecf5;
+  --muted: #b6bdd3;
+  --primary: #7c9bff;
+  --primary-strong: #5470ff;
+  --amber: #f0c674;
+  --pink: #ff8fb1;
+  --teal: #4fd1c5;
+  --violet: #c084fc;
+  --green: #74dba8;
+  --shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+}
+
+html.light {
+  /* light mode variables */
+  --bg: #f9fafb;
+  --panel: rgba(0, 0, 0, 0.05);
+  --panel-strong: rgba(0, 0, 0, 0.09);
+  --border: rgba(0, 0, 0, 0.12);
+  --text: #202634;
+  --muted: #667385;
+  --primary: #647eff;
+  --primary-strong: #3f51b5;
+  --amber: #c1922c;
+  --pink: #d16c8c;
+  --teal: #319795;
+  --violet: #805ad5;
+  --green: #2f855a;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+html.dark {
+  /* duplicate dark palette so switching between light/dark doesn't lose variables */
   --bg: #0d0f1a;
   --panel: rgba(255, 255, 255, 0.04);
   --panel-strong: rgba(255, 255, 255, 0.08);
@@ -396,6 +442,141 @@ button:focus-visible {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--border);
   color: var(--muted);
+}
+
+/*
+  New page layouts
+
+  The app has been refactored into distinct pages (login, calendar
+  dashboard and settings).  These utility classes provide layout and
+  styling for each page while reusing the existing colour variables.
+*/
+
+/* Container for authenticated pages */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-bottom: 40px;
+}
+
+/* Full‑page login layout */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+}
+
+.login-card {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.login-subtitle {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+/* Navigation bar */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 12px 18px;
+  box-shadow: var(--shadow);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-link {
+  padding: 8px 14px;
+  border-radius: 12px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(124, 155, 255, 0.4);
+}
+
+.nav-link.active {
+  background: rgba(124, 155, 255, 0.18);
+  color: #dfe6ff;
+  border-color: rgba(124, 155, 255, 0.4);
+}
+
+/* Settings page layout */
+.settings-page {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.setting-item label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.setting-item input[type="checkbox"] {
+  transform: scale(1.2);
 }
 
 .empty-state {
