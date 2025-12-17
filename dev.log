@@ -6,14 +6,9 @@
 [0] > teknologi-ai-app@0.0.0 server
 [0] > node server/index.js
 [0]
+[0] API server listening on http://localhost:4000
 [1]
-[1]   VITE v5.4.21  ready in 343 ms
+[1]   VITE v5.4.21  ready in 461 ms
 [1]
 [1]   ➜  Local:   http://localhost:5173/
-[1]   ➜  Network: http://192.168.0.2:5173/
-[0] API server listening on http://0.0.0.0:4000
-[1] 11:06:04 AM [vite] hmr update /src/index.css
-[1] 11:06:40 AM [vite] hmr update /src/index.css
-[1] 11:07:23 AM [vite] hmr update /src/App.jsx
-[1] 11:09:42 AM [vite] ✨ new dependencies optimized: react-router-dom
-[1] 11:09:42 AM [vite] ✨ optimized dependencies changed. reloading
+[1]   ➜  Network: use --host to expose
