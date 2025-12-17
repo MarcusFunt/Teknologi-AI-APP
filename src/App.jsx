@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import LoginPage from './pages/LoginPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
 
 const typeBadges = {
   meeting: { label: 'Meeting', tone: 'primary' },
@@ -42,6 +44,20 @@ function App() {
   const [aiError, setAiError] = useState('');
   const [isAiRunning, setIsAiRunning] = useState(false);
 
+  // Track which page is currently selected.  The calendar view is the
+  // default page after authentication.  Users can switch between
+  // "calendar" and "settings" via the navigation bar.
+  const [page, setPage] = useState('calendar');
+
+  // Persisted dark mode preference.  Read from localStorage on
+  // initialisation and update the root class whenever the value
+  // changes.  This drives the CSS variable switching defined in
+  // index.css (html.light vs html.dark).
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const stored = localStorage.getItem('darkMode');
+    return stored === null ? true : stored === 'true';
+  });
+
   useEffect(() => {
     const bootstrapAuth = async () => {
       if (!authToken) {
@@ -75,6 +91,21 @@ function App() {
 
     bootstrapAuth();
   }, [authToken]);
+
+  // Apply the dark or light class to the html element whenever
+  // isDarkMode changes.  Persist preference to localStorage so the
+  // setting survives page reloads.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', String(isDarkMode));
+  }, [isDarkMode]);
 
   const refreshEvents = useCallback(async () => {
     if (isAuthenticating) {
@@ -221,6 +252,14 @@ function App() {
     setAiPrompt('');
   };
 
+  /**
+   * Toggle between light and dark mode.  This updates both the
+   * component state and the root class via the useEffect above.
+   */
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
   const openAiEditor = () => {
     if (!isAuthenticated) {
       setAuthError('Sign in to use AI editing.');
@@ -271,338 +310,284 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
-      <header className="hero">
-        <div>
-          <p className="eyebrow">Productivity Toolkit</p>
-          <h1>Modern calendar</h1>
-          <p className="lede">
-            Navigate your schedule with a calm, focused view. Quickly scan the month, see what is
-            coming next, and keep the important days highlighted.
-          </p>
-          <div className="hero-actions">
-            <button className="ghost" type="button" onClick={goToToday}>
-              Jump to today
-            </button>
-            <div className="tag">Interoperable UI • Minimal setup</div>
-          </div>
-        </div>
-        <div className="hero-side">
-          <div className="auth-card">
-            {isAuthenticated ? (
-              <div className="signed-in">
-                <p className="label subtle">Signed in</p>
-                <h3>{user.name}</h3>
-                <p className="hint">{user.email}</p>
-                <button className="ghost full" type="button" onClick={handleLogout}>
-                  Log out
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="auth-toggle">
-                  <button
-                    type="button"
-                    className={authMode === 'login' ? 'active' : ''}
-                    onClick={() => setAuthMode('login')}
-                  >
-                    Sign in
-                  </button>
-                  <button
-                    type="button"
-                    className={authMode === 'register' ? 'active' : ''}
-                    onClick={() => setAuthMode('register')}
-                  >
-                    Create account
-                  </button>
-                </div>
-                <form className="auth-form" onSubmit={handleAuthSubmit}>
-                  {authMode === 'register' && (
-                    <label htmlFor="name">
-                      <span>Name</span>
-                      <input
-                        id="name"
-                        type="text"
-                        value={authForm.name}
-                        onChange={(event) => handleAuthInput('name', event.target.value)}
-                        autoComplete="name"
-                      />
-                    </label>
-                  )}
-                  <label htmlFor="email">
-                    <span>Email</span>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      value={authForm.email}
-                      onChange={(event) => handleAuthInput('email', event.target.value)}
-                      autoComplete="email"
-                    />
-                  </label>
-                  <label htmlFor="password">
-                    <span>Password</span>
-                    <input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={8}
-                      value={authForm.password}
-                      onChange={(event) => handleAuthInput('password', event.target.value)}
-                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                    />
-                  </label>
-                  {authError && <p className="auth-error">{authError}</p>}
-                  <button className="primary" type="submit" disabled={isAuthenticating}>
-                    {authMode === 'login' ? 'Sign in' : 'Create account'}
-                  </button>
-                </form>
-                <p className="hint">Securely access your saved schedule across devices.</p>
-              </>
-            )}
-          </div>
-          <div className="stat-card">
-            <div className="stat">
-              <span className="label">This month</span>
-              <strong>{scheduledCount}</strong>
-              <span className="hint">moments scheduled</span>
-            </div>
-            <div className="stat">
-              <span className="label">Session</span>
-              <strong>{isAuthenticated ? 'Active' : 'Guest'}</strong>
-              <span className="hint">
-                {isAuthenticating ? 'Checking…' : isAuthenticated ? 'Signed in' : 'Create an account'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="layout">
-        <section className="panel calendar-panel">
-          <div className="panel-header">
-            <div>
-              <p className="label subtle">Month overview</p>
-              <h2>{getMonthLabel(currentDate)}</h2>
-            </div>
-            <div className="controls">
-              <button type="button" onClick={() => changeMonth(-1)} aria-label="Previous month">
-                ‹
+    <>
+      {!isAuthenticated ? (
+        <LoginPage
+          authMode={authMode}
+          setAuthMode={setAuthMode}
+          authForm={authForm}
+          handleAuthInput={handleAuthInput}
+          handleAuthSubmit={handleAuthSubmit}
+          authError={authError}
+          isAuthenticating={isAuthenticating}
+        />
+      ) : (
+        <div className="app-container">
+          {/* Navigation bar displayed on authenticated pages */}
+          <header className="nav-bar">
+            <div className="nav-links">
+              <button
+                type="button"
+                className={`nav-link ${page === 'calendar' ? 'active' : ''}`}
+                onClick={() => setPage('calendar')}
+              >
+                Calendar
               </button>
-              <button type="button" onClick={() => changeMonth(1)} aria-label="Next month">
-                ›
+              <button
+                type="button"
+                className={`nav-link ${page === 'settings' ? 'active' : ''}`}
+                onClick={() => setPage('settings')}
+              >
+                Settings
               </button>
             </div>
-          </div>
-
-          <div className="weekday-row">
-            {weekdayLabels.map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-
-          <div className="calendar-grid">
-            {calendarCells.map((cell, index) => {
-              if (!cell) {
-                return <div key={`empty-${index}`} className="empty" />;
-              }
-
-              const key = formatKey(cell);
-              const dayEvents = getDayEvents(key);
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`day ${selectedKey === key ? 'selected' : ''} ${
-                    isToday(cell) ? 'today' : ''
-                  } ${dayEvents.length > 0 ? 'has-events' : ''}`}
-                  onClick={() => handleDayClick(cell)}
-                >
-                  <span className="date-number">{cell.getDate()}</span>
-                  {dayEvents.length > 0 && <span className="dot" />}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="panel detail-panel">
-          <div className="panel-header">
-            <div>
-              <p className="label subtle">Details</p>
-              <h3>
-                {selectedDate.toLocaleDateString('default', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </h3>
-            </div>
-            <div className="panel-actions">
-              <div className="pill">{dayEvents.length} items</div>
-              <button type="button" className="primary ghosty" onClick={openAiEditor}>
-                Edit with AI
+            <div className="nav-links">
+              <span className="label subtle">{user.name}</span>
+              <button type="button" className="ghost" onClick={handleLogout}>
+                Log out
               </button>
             </div>
-          </div>
-
-          {!isAuthenticated ? (
-            <div className="empty-state">
-              <div className="accent" />
-              <p className="title">Sign in to view events</p>
-              <p className="hint">Create an account or log in to sync your calendar.</p>
-            </div>
-          ) : error ? (
-            <div className="empty-state">
-              <div className="accent" />
-              <p className="title">Could not load events</p>
-              <p className="hint">Check the API server and database connection.</p>
-            </div>
-          ) : isLoading ? (
-            <div className="empty-state">
-              <div className="accent" />
-              <p className="title">Loading events…</p>
-              <p className="hint">Fetching the latest schedule from PostgreSQL.</p>
-            </div>
-          ) : dayEvents.length === 0 ? (
-            <div className="empty-state">
-              <div className="accent" />
-              <p className="title">No events scheduled</p>
-              <p className="hint">Tap any date to see what is coming up.</p>
-            </div>
-          ) : (
-            <ul className="events">
-              {dayEvents.map((event) => {
-                const badge = typeBadges[event.type];
-                return (
-                  <li key={`${event.date}-${event.title}`} className="event">
-                    <div>
-                      <p className="title">{event.title}</p>
-                      <p className="hint">{event.time}</p>
-                    </div>
-                    {badge && <span className={`badge ${badge.tone}`}>{badge.label}</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-
-          <div className="subsection">
-            <div className="subhead">
-              <p className="label subtle">Upcoming highlights</p>
-              <div className="pill neutral">Auto-sorted</div>
-            </div>
-            <ul className="timeline">
-              {(!isAuthenticated || upcomingEvents.length === 0) && !isLoading && (
-                <li className="timeline-item">
-                  <div>
-                    <p className="title">{isAuthenticated ? 'No upcoming events' : 'Sign in to sync'}</p>
-                    <p className="hint">
-                      {isAuthenticated
-                        ? 'Plan your next milestone to see it here.'
-                        : 'Authentication keeps your dates private.'}
-                    </p>
+          </header>
+          {page === 'calendar' && (
+            <>
+              <header className="hero">
+                <div>
+                  <p className="eyebrow">Productivity Toolkit</p>
+                  <h1>Modern calendar</h1>
+                  <p className="lede">
+                    Navigate your schedule with a calm, focused view. Quickly scan the month, see what is
+                    coming next, and keep the important days highlighted.
+                  </p>
+                  <div className="hero-actions">
+                    <button className="ghost" type="button" onClick={goToToday}>
+                      Jump to today
+                    </button>
+                    <div className="tag">Interoperable UI • Minimal setup</div>
                   </div>
-                </li>
-              )}
-              {isAuthenticated &&
-                upcomingEvents.map((event) => {
-                  const badge = typeBadges[event.type];
-                  return (
-                    <li key={`${event.date}-${event.title}`} className="timeline-item">
-                    <div className="time">
-                      {new Date(event.date).toLocaleDateString('default', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                </div>
+                <div className="hero-side">
+                  <div className="stat-card">
+                    <div className="stat">
+                      <span className="label">This month</span>
+                      <strong>{scheduledCount}</strong>
+                      <span className="hint">moments scheduled</span>
                     </div>
-                    <div>
-                      <p className="title">{event.title}</p>
-                      <p className="hint">{event.time}</p>
-                    </div>
-                    {badge && <span className={`badge muted ${badge.tone}`}>{badge.label}</span>}
-                  </li>
-                  );
-                })}
-            </ul>
-          </div>
-
-          <div className={`ai-dialog ${isAiOpen ? 'open' : ''}`}>
-            <div className="ai-header">
-              <div>
-                <p className="label subtle">AI calendar copilot</p>
-                <p className="title">Describe edits or ask for adjustments</p>
-              </div>
-              <button type="button" className="ghost" onClick={closeAiEditor}>
-                Close
-              </button>
-            </div>
-
-            <form className="ai-form" onSubmit={handleAiSubmit}>
-              <textarea
-                value={aiPrompt}
-                onChange={(event) => setAiPrompt(event.target.value)}
-                placeholder={
-                  isAuthenticated
-                    ? 'e.g. Move the design critique to 10:30 and add a prep session tomorrow.'
-                    : 'Sign in to ask the assistant to edit your calendar.'
-                }
-                disabled={!isAuthenticated || isAiRunning}
-              />
-              {aiError && <p className="auth-error">{aiError}</p>}
-              <div className="ai-actions">
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => setAiPrompt('')}
-                  disabled={isAiRunning}
-                >
-                  Clear
-                </button>
-                <button className="primary" type="submit" disabled={!isAuthenticated || isAiRunning}>
-                  {isAiRunning ? 'Thinking…' : 'Send to AI'}
-                </button>
-              </div>
-            </form>
-
-            {aiResult?.plan && (
-              <div className="ai-result">
-                <p className="label subtle">AI plan</p>
-                <p className="title">{aiResult.plan.summary}</p>
-                <ul className="ai-ops">
-                  {aiResult.plan.operations?.map((operation, index) => (
-                    <li key={`${operation.action}-${operation.id || index}`}>
-                      <strong>{operation.action}</strong>
-                      <span>
-                        {[operation.title, operation.date, operation.time, operation.type]
-                          .filter(Boolean)
-                          .join(' • ')}
-                        {operation.id ? ` (id ${operation.id})` : ''}
+                    <div className="stat">
+                      <span className="label">Session</span>
+                      <strong>{isAuthenticated ? 'Active' : 'Guest'}</strong>
+                      <span className="hint">
+                        {isAuthenticating ? 'Checking…' : 'Signed in'}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {aiResult?.patchResult?.results && (
-              <div className="ai-result">
-                <p className="label subtle">Applied changes</p>
-                <ul className="ai-ops compact">
-                  {aiResult.patchResult.results.map((result, index) => (
-                    <li key={`${result.status}-${index}`}>
-                      <strong>{result.status}</strong>
-                      <span>{result.reason || result.event?.title || 'Operation handled'}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-    </div>
+                    </div>
+                  </div>
+                </div>
+              </header>
+              <main className="layout">
+                <section className="panel calendar-panel">
+                  <div className="panel-header">
+                    <div>
+                      <p className="label subtle">Month overview</p>
+                      <h2>{getMonthLabel(currentDate)}</h2>
+                    </div>
+                    <div className="controls">
+                      <button type="button" onClick={() => changeMonth(-1)} aria-label="Previous month">
+                        ‹
+                      </button>
+                      <button type="button" onClick={() => changeMonth(1)} aria-label="Next month">
+                        ›
+                      </button>
+                    </div>
+                  </div>
+                  <div className="weekday-row">
+                    {weekdayLabels.map((day) => (
+                      <span key={day}>{day}</span>
+                    ))}
+                  </div>
+                  <div className="calendar-grid">
+                    {calendarCells.map((cell, index) => {
+                      if (!cell) {
+                        return <div key={`empty-${index}`} className="empty" />;
+                      }
+                      const key = formatKey(cell);
+                      const dayEvents = getDayEvents(key);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`day ${selectedKey === key ? 'selected' : ''} ${
+                            isToday(cell) ? 'today' : ''
+                          } ${dayEvents.length > 0 ? 'has-events' : ''}`}
+                          onClick={() => handleDayClick(cell)}
+                        >
+                          <span className="date-number">{cell.getDate()}</span>
+                          {dayEvents.length > 0 && <span className="dot" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+                <section className="panel detail-panel">
+                  <div className="panel-header">
+                    <div>
+                      <p className="label subtle">Details</p>
+                      <h3>
+                        {selectedDate.toLocaleDateString('default', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </h3>
+                    </div>
+                    <div className="panel-actions">
+                      <div className="pill">{dayEvents.length} items</div>
+                      <button type="button" className="primary ghosty" onClick={openAiEditor}>
+                        Edit with AI
+                      </button>
+                    </div>
+                  </div>
+                  {error ? (
+                    <div className="empty-state">
+                      <div className="accent" />
+                      <p className="title">Could not load events</p>
+                      <p className="hint">Check the API server and database connection.</p>
+                    </div>
+                  ) : isLoading ? (
+                    <div className="empty-state">
+                      <div className="accent" />
+                      <p className="title">Loading events…</p>
+                      <p className="hint">Fetching the latest schedule from PostgreSQL.</p>
+                    </div>
+                  ) : dayEvents.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="accent" />
+                      <p className="title">No events scheduled</p>
+                      <p className="hint">Tap any date to see what is coming up.</p>
+                    </div>
+                  ) : (
+                    <ul className="events">
+                      {dayEvents.map((event) => {
+                        const badge = typeBadges[event.type];
+                        return (
+                          <li key={`${event.date}-${event.title}`} className="event">
+                            <div>
+                              <p className="title">{event.title}</p>
+                              <p className="hint">{event.time}</p>
+                            </div>
+                            {badge && <span className={`badge ${badge.tone}`}>{badge.label}</span>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <div className="subsection">
+                    <div className="subhead">
+                      <p className="label subtle">Upcoming highlights</p>
+                      <div className="pill neutral">Auto-sorted</div>
+                    </div>
+                    <ul className="timeline">
+                      {upcomingEvents.length === 0 && !isLoading && (
+                        <li className="timeline-item">
+                          <div>
+                            <p className="title">No upcoming events</p>
+                            <p className="hint">Plan your next milestone to see it here.</p>
+                          </div>
+                        </li>
+                      )}
+                      {upcomingEvents.map((event) => {
+                        const badge = typeBadges[event.type];
+                        return (
+                          <li key={`${event.date}-${event.title}`} className="timeline-item">
+                            <div className="time">
+                              {new Date(event.date).toLocaleDateString('default', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </div>
+                            <div>
+                              <p className="title">{event.title}</p>
+                              <p className="hint">{event.time}</p>
+                            </div>
+                            {badge && <span className={`badge muted ${badge.tone}`}>{badge.label}</span>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                  <div className={`ai-dialog ${isAiOpen ? 'open' : ''}`}>
+                    <div className="ai-header">
+                      <div>
+                        <p className="label subtle">AI calendar copilot</p>
+                        <p className="title">Describe edits or ask for adjustments</p>
+                      </div>
+                      <button type="button" className="ghost" onClick={closeAiEditor}>
+                        Close
+                      </button>
+                    </div>
+                    <form className="ai-form" onSubmit={handleAiSubmit}>
+                      <textarea
+                        value={aiPrompt}
+                        onChange={(event) => setAiPrompt(event.target.value)}
+                        placeholder={'e.g. Move the design critique to 10:30 and add a prep session tomorrow.'}
+                        disabled={isAiRunning}
+                      />
+                      {aiError && <p className="auth-error">{aiError}</p>}
+                      <div className="ai-actions">
+                        <button
+                          type="button"
+                          className="ghost"
+                          onClick={() => setAiPrompt('')}
+                          disabled={isAiRunning}
+                        >
+                          Clear
+                        </button>
+                        <button className="primary" type="submit" disabled={isAiRunning}>
+                          {isAiRunning ? 'Thinking…' : 'Send to AI'}
+                        </button>
+                      </div>
+                    </form>
+                    {aiResult?.plan && (
+                      <div className="ai-result">
+                        <p className="label subtle">AI plan</p>
+                        <p className="title">{aiResult.plan.summary}</p>
+                        <ul className="ai-ops">
+                          {aiResult.plan.operations?.map((operation, index) => (
+                            <li key={`${operation.action}-${operation.id || index}`}>
+                              <strong>{operation.action}</strong>
+                              <span>
+                                {[operation.title, operation.date, operation.time, operation.type]
+                                  .filter(Boolean)
+                                  .join(' • ')}
+                                {operation.id ? ` (id ${operation.id})` : ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiResult?.patchResult?.results && (
+                      <div className="ai-result">
+                        <p className="label subtle">Applied changes</p>
+                        <ul className="ai-ops compact">
+                          {aiResult.patchResult.results.map((result, index) => (
+                            <li key={`${result.status}-${index}`}>
+                              <strong>{result.status}</strong>
+                              <span>{result.reason || result.event?.title || 'Operation handled'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </main>
+            </>
+          )}
+          {page === 'settings' && (
+            <SettingsPage user={user} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
