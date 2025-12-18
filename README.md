@@ -18,6 +18,13 @@ Run the API and frontend together with:
 npm run dev    # starts Express on 4000 and Vite on 5173 with /api proxying
 ```
 
+For UI-only development, enable the **WFE** (web front end) mode to skip starting the API and use
+built-in fixture data:
+
+```bash
+VITE_WFE_MODE=1 npm run dev:wfe   # runs Vite with mock auth and events
+```
+
 Then visit the printed local URL (usually `http://localhost:5173`).
 
 ## Run with Docker
@@ -58,6 +65,7 @@ fetch and patch events when the AI endpoint runs.
 
 ## Scripts
 - `npm run dev` — start the Vite dev server
+- `npm run dev:wfe` — start Vite with fixture auth/events for UI-only work
 - `npm run build` — create a production build in `dist/`
 - `npm run preview` — preview the production build locally
 - `npm run lint` — run ESLint with the included modern defaults

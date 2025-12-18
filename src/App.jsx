@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import LoginPage from './pages/LoginPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import { wfeEvents, wfeUser } from './wfeFixtures.js';
+
+const isWfeMode =
+  import.meta.env.VITE_WFE_MODE === 'true' || import.meta.env.VITE_WFE_MODE === '1';
 
 const typeBadges = {
   meeting: { label: 'Meeting', tone: 'primary' },
@@ -29,15 +33,17 @@ function App() {
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [events, setEvents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState(() => (isWfeMode ? wfeEvents : []));
+  const [isLoading, setIsLoading] = useState(!isWfeMode);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => (isWfeMode ? wfeUser : null));
   const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
-  const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken') || '');
+  const [authToken, setAuthToken] = useState(() =>
+    isWfeMode ? 'wfe-mode-token' : localStorage.getItem('authToken') || '',
+  );
   const [authError, setAuthError] = useState('');
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(!isWfeMode);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResult, setAiResult] = useState(null);
@@ -59,6 +65,11 @@ function App() {
   });
 
   useEffect(() => {
+    if (isWfeMode) {
+      setIsAuthenticating(false);
+      return;
+    }
+
     const bootstrapAuth = async () => {
       if (!authToken) {
         setIsAuthenticating(false);
@@ -108,6 +119,13 @@ function App() {
   }, [isDarkMode]);
 
   const refreshEvents = useCallback(async () => {
+    if (isWfeMode) {
+      setEvents(wfeEvents);
+      setIsLoading(false);
+      setError('');
+      return;
+    }
+
     if (isAuthenticating) {
       return;
     }
@@ -208,6 +226,14 @@ function App() {
     event.preventDefault();
     setAuthError('');
 
+    if (isWfeMode) {
+      setUser(wfeUser);
+      setAuthToken('wfe-mode-token');
+      setAuthForm({ name: '', email: '', password: '' });
+      setError('');
+      return;
+    }
+
     const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
     const payload = {
       email: authForm.email,
@@ -278,6 +304,12 @@ function App() {
   const handleAiSubmit = async (event) => {
     event.preventDefault();
     if (!aiPrompt.trim() || !isAuthenticated) {
+      return;
+    }
+
+    if (isWfeMode) {
+      setAiError('AI editing is disabled in WFE mode.');
+      setIsAiRunning(false);
       return;
     }
 

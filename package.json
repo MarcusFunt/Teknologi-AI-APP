@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"npm run server\" \"vite\"",
+    "dev:wfe": "VITE_WFE_MODE=1 vite",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
