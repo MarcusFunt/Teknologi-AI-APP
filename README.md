@@ -37,15 +37,17 @@ LangChain.js powers an on-demand AI editor that can rewrite events and apply the
 structured JSON schema. The service expects a local Ollama host with the `gemma-3-1b` model
 available.
 
-Using Docker Compose, the included `ollama` service is already wired to the app:
+Using Docker Compose, a one-command setup starts the app, boots Ollama, and automatically pulls the
+required model into the shared volume:
 
 ```bash
-docker compose up --build -d
-docker compose exec ollama ollama pull gemma-3-1b
+docker compose up --build
 ```
 
-When running outside Docker, set `OLLAMA_BASE_URL` to your host (default: `http://localhost:11434`).
-The Express API calls itself (`API_BASE_URL`) to fetch and patch events when the AI endpoint runs.
+The `ollama-init` helper service waits for the Ollama daemon to become healthy and then downloads
+`gemma-3-1b` so the app can call it immediately. When running outside Docker, set `OLLAMA_BASE_URL`
+to your host (default: `http://localhost:11434`). The Express API calls itself (`API_BASE_URL`) to
+fetch and patch events when the AI endpoint runs.
 
 ### API helpers
 
