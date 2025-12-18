@@ -49,14 +49,6 @@ function App() {
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState('');
   const [isAiRunning, setIsAiRunning] = useState(false);
-  const [eventForm, setEventForm] = useState(() => ({
-    title: '',
-    date: formatKey(new Date()),
-    time: '',
-    type: 'meeting',
-  }));
-  const [eventFormError, setEventFormError] = useState('');
-  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
   // Track which page is currently selected.  The calendar view is the
   // default page after authentication.  Users can switch between
@@ -167,10 +159,6 @@ function App() {
     refreshEvents();
   }, [refreshEvents]);
 
-  useEffect(() => {
-    setEventForm((prev) => ({ ...prev, date: formatKey(selectedDate) }));
-  }, [selectedDate]);
-
   const calendarCells = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -269,83 +257,6 @@ function App() {
       setError('');
     } catch (authIssue) {
       setAuthError(authIssue.message);
-    }
-  };
-
-  const handleEventFormInput = (field, value) => {
-    setEventFormError('');
-    setEventForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const resetEventForm = useCallback(() => {
-    setEventForm({ title: '', date: formatKey(selectedDate), time: '', type: 'meeting' });
-    setEventFormError('');
-  }, [selectedDate]);
-
-  const sortEventsByDateTime = (list) =>
-    [...list].sort((a, b) => (a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
-
-  const handleEventSubmit = async (event) => {
-    event.preventDefault();
-    setEventFormError('');
-
-    const payload = {
-      title: eventForm.title.trim(),
-      time: eventForm.time.trim(),
-      date: eventForm.date || formatKey(selectedDate),
-      type: eventForm.type || 'meeting',
-    };
-
-    if (!payload.title || !payload.time) {
-      setEventFormError('Title and time are required.');
-      return;
-    }
-
-    if (isWfeMode) {
-      setEvents((prev) => sortEventsByDateTime([...prev, payload]));
-      resetEventForm();
-      return;
-    }
-
-    if (!authToken || !user) {
-      setEventFormError('You need to be signed in to add events.');
-      return;
-    }
-
-    setIsSavingEvent(true);
-
-    try {
-      const response = await fetch('/api/events/bulk', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          operations: [
-            {
-              action: 'create',
-              title: payload.title,
-              date: payload.date,
-              time: payload.time,
-              type: payload.type,
-            },
-          ],
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to add the event.');
-      }
-
-      setEvents(data.events || []);
-      setError('');
-      resetEventForm();
-    } catch (creationError) {
-      setEventFormError(creationError.message);
-    } finally {
-      setIsSavingEvent(false);
     }
   };
 
@@ -561,70 +472,6 @@ function App() {
                       })}
                     </ul>
                   )}
-                  <div className="subsection">
-                    <div className="subhead">
-                      <p className="label subtle">Add event</p>
-                      <div className="pill neutral">Manual entry</div>
-                    </div>
-                    <form className="event-form" onSubmit={handleEventSubmit}>
-                      <div className="field-row">
-                        <label>
-                          <span className="label subtle">Title</span>
-                          <input
-                            type="text"
-                            value={eventForm.title}
-                            onChange={(event) => handleEventFormInput('title', event.target.value)}
-                            placeholder="e.g. Product sync"
-                            disabled={isSavingEvent}
-                          />
-                        </label>
-                        <label>
-                          <span className="label subtle">Time</span>
-                          <input
-                            type="text"
-                            value={eventForm.time}
-                            onChange={(event) => handleEventFormInput('time', event.target.value)}
-                            placeholder="e.g. 3:00 PM – 4:00 PM"
-                            disabled={isSavingEvent}
-                          />
-                        </label>
-                      </div>
-                      <div className="field-row">
-                        <label>
-                          <span className="label subtle">Date</span>
-                          <input
-                            type="date"
-                            value={eventForm.date}
-                            onChange={(event) => handleEventFormInput('date', event.target.value)}
-                            disabled={isSavingEvent}
-                          />
-                        </label>
-                        <label>
-                          <span className="label subtle">Type</span>
-                          <select
-                            value={eventForm.type}
-                            onChange={(event) => handleEventFormInput('type', event.target.value)}
-                            disabled={isSavingEvent}
-                          >
-                            {Object.entries(typeBadges).map(([value, badge]) => (
-                              <option key={value} value={value}>
-                                {badge.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                      {eventFormError && <p className="auth-error">{eventFormError}</p>}
-                      <div className="event-actions">
-                        <button type="button" className="ghost" onClick={resetEventForm} disabled={isSavingEvent}>
-                          Reset
-                        </button>
-                        <button className="primary" type="submit" disabled={isSavingEvent}>
-                          {isSavingEvent ? 'Adding…' : 'Add event'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
                   <div className="subsection">
                     <div className="subhead">
                       <p className="label subtle">Upcoming highlights</p>
