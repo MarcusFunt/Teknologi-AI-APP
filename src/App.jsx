@@ -201,16 +201,9 @@ function App() {
 
   const isToday = (date) => formatKey(date) === formatKey(today);
   const isAuthenticated = Boolean(user);
-  const scheduledCount = isAuthenticated ? (isLoading ? '…' : events.length) : '—';
 
   const changeMonth = (offset) => {
     setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
-  };
-
-  const goToToday = () => {
-    const now = new Date();
-    setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    setSelectedDate(now);
   };
 
   const handleDayClick = (date) => {
@@ -382,38 +375,6 @@ function App() {
           </header>
           {page === 'calendar' && (
             <>
-              <header className="hero">
-                <div>
-                  <p className="eyebrow">Productivity Toolkit</p>
-                  <h1>Modern calendar</h1>
-                  <p className="lede">
-                    Navigate your schedule with a calm, focused view. Quickly scan the month, see what is
-                    coming next, and keep the important days highlighted.
-                  </p>
-                  <div className="hero-actions">
-                    <button className="ghost" type="button" onClick={goToToday}>
-                      Jump to today
-                    </button>
-                    <div className="tag">Interoperable UI • Minimal setup</div>
-                  </div>
-                </div>
-                <div className="hero-side">
-                  <div className="stat-card">
-                    <div className="stat">
-                      <span className="label">This month</span>
-                      <strong>{scheduledCount}</strong>
-                      <span className="hint">moments scheduled</span>
-                    </div>
-                    <div className="stat">
-                      <span className="label">Session</span>
-                      <strong>{isAuthenticated ? 'Active' : 'Guest'}</strong>
-                      <span className="hint">
-                        {isAuthenticating ? 'Checking…' : 'Signed in'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </header>
               <main className="layout">
                 <section className="panel calendar-panel">
                   <div className="panel-header">
