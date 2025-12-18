@@ -27,6 +27,27 @@ VITE_WFE_MODE=1 npm run dev:wfe   # runs Vite with mock auth and events
 
 Then visit the printed local URL (usually `http://localhost:5173`).
 
+### GitHub Pages / static WFE build
+
+You can deploy the read-only WFE bundle to GitHub Pages to quickly review UI changes without the
+API:
+
+1) Set a base path so Vite emits assets that work at the Pages URL (replace `teknologi-ai-app` with
+   your repo name):
+
+```bash
+VITE_BASE_PATH=/teknologi-ai-app/ VITE_WFE_MODE=1 npm run build:wfe
+```
+
+2) Publish the `dist/` folder to your `gh-pages` branch or through Actions.
+
+Notes:
+
+- WFE mode ships fixture auth/events and disables AI editing and persistence. It is intended for UI
+  previews only.
+- The normal local stack (`npm run dev`) still proxies to the API; unset `VITE_WFE_MODE` and
+  `VITE_BASE_PATH` when switching back.
+
 ## Run with Docker
 
 The repository includes a `docker-compose.yml` that runs the app by itself with persistent JSON
@@ -66,6 +87,7 @@ fetch and patch events when the AI endpoint runs.
 ## Scripts
 - `npm run dev` — start the Vite dev server
 - `npm run dev:wfe` — start Vite with fixture auth/events for UI-only work
+- `npm run build:wfe` — build the static WFE bundle (useful for GitHub Pages)
 - `npm run build` — create a production build in `dist/`
 - `npm run preview` — preview the production build locally
 - `npm run lint` — run ESLint with the included modern defaults
