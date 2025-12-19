@@ -44,11 +44,19 @@ function App() {
   );
   const [authError, setAuthError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(!isWfeMode);
-  const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState('');
   const [isAiRunning, setIsAiRunning] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+  const [manualMode, setManualMode] = useState('add');
+  const [manualError, setManualError] = useState('');
+  const [manualForm, setManualForm] = useState({
+    title: '',
+    time: '',
+    type: 'meeting',
+    description: '',
+  });
 
   // Track which page is currently selected.  The calendar view is the
   // default page after authentication.  Users can switch between
@@ -184,6 +192,16 @@ function App() {
 
   const selectedKey = useMemo(() => formatKey(selectedDate), [selectedDate]);
 
+  const selectedDateLabel = useMemo(
+    () =>
+      selectedDate.toLocaleDateString('default', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [selectedDate],
+  );
+
   const getDayEvents = useCallback(
     (dayKey) => events.filter((event) => event.date === dayKey),
     [events],
@@ -266,9 +284,9 @@ function App() {
     setUser(null);
     setEvents([]);
     setError('');
-    setIsAiOpen(false);
     setAiResult(null);
     setAiPrompt('');
+    setActiveModal(null);
   };
 
   /**
@@ -279,19 +297,39 @@ function App() {
     setIsDarkMode((prev) => !prev);
   };
 
-  const openAiEditor = () => {
+  const openAiModal = (mode) => {
     if (!isAuthenticated) {
       setAuthError('Sign in to use AI editing.');
       return;
     }
 
-    setIsAiOpen(true);
     setAiError('');
+    setActiveModal(`${mode}-ai`);
   };
 
-  const closeAiEditor = () => {
-    setIsAiOpen(false);
+  const openManualModal = (mode) => {
+    setManualMode(mode);
+    setManualError('');
+    if (mode === 'edit' && dayEvents.length > 0) {
+      const [firstEvent] = dayEvents;
+      setManualForm({
+        title: firstEvent.title,
+        time: firstEvent.time,
+        type: firstEvent.type,
+        description: firstEvent.description || '',
+      });
+    } else {
+      setManualForm({ title: '', time: '', type: 'meeting', description: '' });
+    }
+
+    setActiveModal(`${mode}-manual`);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
     setAiError('');
+    setManualError('');
+    setAiResult(null);
   };
 
   const handleAiSubmit = async (event) => {
@@ -332,6 +370,40 @@ function App() {
     } finally {
       setIsAiRunning(false);
     }
+  };
+
+  const handleManualSubmit = (event) => {
+    event.preventDefault();
+
+    if (!manualForm.title.trim() || !manualForm.time.trim()) {
+      setManualError('Title and time are required.');
+      return;
+    }
+
+    const newEntry = {
+      ...manualForm,
+      date: selectedKey,
+    };
+
+    setEvents((previous) => {
+      if (manualMode === 'edit') {
+        let updated = false;
+        const mapped = previous.map((existing) => {
+          if (existing.date === selectedKey && !updated) {
+            updated = true;
+            return { ...existing, ...newEntry };
+          }
+          return existing;
+        });
+        return updated ? mapped : [...mapped, newEntry];
+      }
+
+      return [...previous, newEntry];
+    });
+
+    setManualForm({ title: '', time: '', type: 'meeting', description: '' });
+    setManualError('');
+    closeModal();
   };
 
   return (
@@ -423,20 +495,50 @@ function App() {
                   <div className="panel-header">
                     <div>
                       <p className="label subtle">Details</p>
-                      <h3>
-                        {selectedDate.toLocaleDateString('default', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </h3>
+                      <h3>{selectedDateLabel}</h3>
                     </div>
                     <div className="panel-actions">
                       <div className="pill">{dayEvents.length} items</div>
-                      <button type="button" className="primary ghosty" onClick={openAiEditor}>
-                        Edit with AI
+                    </div>
+                  </div>
+                  <div className="action-card">
+                    <div className="action-card__header">
+                      <div>
+                        <p className="label subtle">Add entry</p>
+                        <p className="title">Capture plans quickly</p>
+                      </div>
+                      <p className="hint">Entries will be attached to {selectedDateLabel}.</p>
+                    </div>
+                    <div className="action-grid">
+                      <button type="button" className="primary" onClick={() => openAiModal('add')}>
+                        Add with AI
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => openManualModal('add')}
+                      >
+                        Add manually
                       </button>
                     </div>
+                    {selectedDate && (
+                      <div className="action-grid secondary">
+                        <button
+                          type="button"
+                          className="primary ghosty"
+                          onClick={() => openAiModal('edit')}
+                        >
+                          Edit with AI
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost"
+                          onClick={() => openManualModal('edit')}
+                        >
+                          Edit manually
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {error ? (
                     <div className="empty-state">
@@ -506,77 +608,172 @@ function App() {
                       })}
                     </ul>
                   </div>
-                  <div className={`ai-dialog ${isAiOpen ? 'open' : ''}`}>
-                    <div className="ai-header">
-                      <div>
-                        <p className="label subtle">AI calendar copilot</p>
-                        <p className="title">Describe edits or ask for adjustments</p>
-                      </div>
-                      <button type="button" className="ghost" onClick={closeAiEditor}>
-                        Close
-                      </button>
-                    </div>
-                    <form className="ai-form" onSubmit={handleAiSubmit}>
-                      <textarea
-                        value={aiPrompt}
-                        onChange={(event) => setAiPrompt(event.target.value)}
-                        placeholder={'e.g. Move the design critique to 10:30 and add a prep session tomorrow.'}
-                        disabled={isAiRunning}
-                      />
-                      {aiError && <p className="auth-error">{aiError}</p>}
-                      <div className="ai-actions">
-                        <button
-                          type="button"
-                          className="ghost"
-                          onClick={() => setAiPrompt('')}
-                          disabled={isAiRunning}
-                        >
-                          Clear
-                        </button>
-                        <button className="primary" type="submit" disabled={isAiRunning}>
-                          {isAiRunning ? 'Thinking…' : 'Send to AI'}
-                        </button>
-                      </div>
-                    </form>
-                    {aiResult?.plan && (
-                      <div className="ai-result">
-                        <p className="label subtle">AI plan</p>
-                        <p className="title">{aiResult.plan.summary}</p>
-                        <ul className="ai-ops">
-                          {aiResult.plan.operations?.map((operation, index) => (
-                            <li key={`${operation.action}-${operation.id || index}`}>
-                              <strong>{operation.action}</strong>
-                              <span>
-                                {[operation.title, operation.date, operation.time, operation.type]
-                                  .filter(Boolean)
-                                  .join(' • ')}
-                                {operation.id ? ` (id ${operation.id})` : ''}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {aiResult?.patchResult?.results && (
-                      <div className="ai-result">
-                        <p className="label subtle">Applied changes</p>
-                        <ul className="ai-ops compact">
-                          {aiResult.patchResult.results.map((result, index) => (
-                            <li key={`${result.status}-${index}`}>
-                              <strong>{result.status}</strong>
-                              <span>{result.reason || result.event?.title || 'Operation handled'}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
                 </section>
               </main>
             </>
           )}
           {page === 'settings' && (
             <SettingsPage user={user} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+          )}
+          {activeModal && (
+            <div className="modal-overlay" role="dialog" aria-modal="true">
+              <div className="modal">
+                {(() => {
+                  const isAiModal = activeModal.includes('ai');
+                  const isEditMode = activeModal.startsWith('edit');
+                  const heading = `${isEditMode ? 'Edit' : 'Add'} ${
+                    isAiModal ? 'with AI' : 'manually'
+                  }`;
+
+                  return (
+                    <>
+                      <div className="modal-header">
+                        <div>
+                          <p className="label subtle">{isAiModal ? 'AI assistant' : 'Manual entry'}</p>
+                          <h3>{heading}</h3>
+                          <p className="hint">Focused on {selectedDateLabel}</p>
+                        </div>
+                        <button type="button" className="ghost" onClick={closeModal}>
+                          Close
+                        </button>
+                      </div>
+                      {isAiModal ? (
+                        <>
+                          <form className="ai-form" onSubmit={handleAiSubmit}>
+                            <textarea
+                              value={aiPrompt}
+                              onChange={(event) => setAiPrompt(event.target.value)}
+                              placeholder={
+                                isEditMode
+                                  ? 'e.g. Move today\'s standup to 2 PM and shorten the design review.'
+                                  : 'e.g. Add a planning session tomorrow at 3 PM and a prep block before it.'
+                              }
+                              disabled={isAiRunning}
+                            />
+                            {aiError && <p className="auth-error">{aiError}</p>}
+                            <div className="ai-actions">
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => setAiPrompt('')}
+                                disabled={isAiRunning}
+                              >
+                                Clear
+                              </button>
+                              <button className="primary" type="submit" disabled={isAiRunning}>
+                                {isAiRunning ? 'Thinking…' : 'Send to AI'}
+                              </button>
+                            </div>
+                          </form>
+                          {aiResult?.plan && (
+                            <div className="ai-result">
+                              <p className="label subtle">AI plan</p>
+                              <p className="title">{aiResult.plan.summary}</p>
+                              <ul className="ai-ops">
+                                {aiResult.plan.operations?.map((operation, index) => (
+                                  <li key={`${operation.action}-${operation.id || index}`}>
+                                    <strong>{operation.action}</strong>
+                                    <span>
+                                      {[operation.title, operation.date, operation.time, operation.type]
+                                        .filter(Boolean)
+                                        .join(' • ')}
+                                      {operation.id ? ` (id ${operation.id})` : ''}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {aiResult?.patchResult?.results && (
+                            <div className="ai-result">
+                              <p className="label subtle">Applied changes</p>
+                              <ul className="ai-ops compact">
+                                {aiResult.patchResult.results.map((result, index) => (
+                                  <li key={`${result.status}-${index}`}>
+                                    <strong>{result.status}</strong>
+                                    <span>{result.reason || result.event?.title || 'Operation handled'}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <form className="manual-form" onSubmit={handleManualSubmit}>
+                          <label>
+                            <span className="label subtle">Title</span>
+                            <input
+                              type="text"
+                              value={manualForm.title}
+                              onChange={(event) =>
+                                setManualForm((previous) => ({ ...previous, title: event.target.value }))
+                              }
+                              placeholder="What are you planning?"
+                            />
+                          </label>
+                          <label>
+                            <span className="label subtle">Time</span>
+                            <input
+                              type="text"
+                              value={manualForm.time}
+                              onChange={(event) =>
+                                setManualForm((previous) => ({ ...previous, time: event.target.value }))
+                              }
+                              placeholder="e.g. 10:00 AM - 11:00 AM"
+                            />
+                          </label>
+                          <label>
+                            <span className="label subtle">Type</span>
+                            <select
+                              value={manualForm.type}
+                              onChange={(event) =>
+                                setManualForm((previous) => ({ ...previous, type: event.target.value }))
+                              }
+                            >
+                              <option value="meeting">Meeting</option>
+                              <option value="milestone">Milestone</option>
+                              <option value="social">Social</option>
+                              <option value="planning">Planning</option>
+                              <option value="demo">Demo</option>
+                              <option value="wellness">Wellness</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span className="label subtle">Notes (optional)</span>
+                            <textarea
+                              value={manualForm.description}
+                              onChange={(event) =>
+                                setManualForm((previous) => ({
+                                  ...previous,
+                                  description: event.target.value,
+                                }))
+                              }
+                              placeholder="Add context or agenda details"
+                              rows={3}
+                            />
+                          </label>
+                          {manualMode === 'edit' && (
+                            <p className="hint">
+                              Updates will apply to the first entry on {selectedDateLabel}. If that date is empty,
+                              a new entry will be created.
+                            </p>
+                          )}
+                          {manualError && <p className="auth-error">{manualError}</p>}
+                          <div className="ai-actions">
+                            <button type="button" className="ghost" onClick={closeModal}>
+                              Cancel
+                            </button>
+                            <button className="primary" type="submit">
+                              {manualMode === 'edit' ? 'Save changes' : 'Add entry'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
           )}
         </div>
       )}
