@@ -62,7 +62,7 @@ The stack exposes Vite on `http://localhost:5173` and the API on `http://localho
 ### AI copilot & Ollama
 
 LangChain.js powers an on-demand AI editor that can rewrite events and apply the changes via a
-structured JSON schema. The service expects a local Ollama host with the `gemma-3-1b` model
+structured JSON schema. The service expects a local Ollama host with the `gemma3:1b` model
 available.
 
 Using Docker Compose, a one-command setup starts the app, boots Ollama, and automatically pulls the
@@ -73,7 +73,7 @@ docker compose up --build
 ```
 
 The `ollama-init` helper service waits for the Ollama daemon to become healthy and then downloads
-`gemma-3-1b` so the app can call it immediately. When running outside Docker, set `OLLAMA_BASE_URL`
+`gemma3:1b` so the app can call it immediately. When running outside Docker, set `OLLAMA_BASE_URL`
 to your host (default: `http://localhost:11434`). The Express API calls itself (`API_BASE_URL`) to
 fetch and patch events when the AI endpoint runs.
 

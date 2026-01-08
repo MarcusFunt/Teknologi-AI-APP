@@ -41,7 +41,7 @@ services:
     entrypoint: [
       "sh",
       "-c",
-      "until OLLAMA_HOST=$$OLLAMA_HOST ollama list >/dev/null 2>&1; do echo 'Waiting for Ollama...'; sleep 2; done; OLLAMA_HOST=$$OLLAMA_HOST ollama pull gemma-3-1b"
+      "until OLLAMA_HOST=$$OLLAMA_HOST ollama list >/dev/null 2>&1; do echo 'Waiting for Ollama...'; sleep 2; done; OLLAMA_HOST=$$OLLAMA_HOST ollama pull gemma3:1b"
     ]
     restart: "no"
 
