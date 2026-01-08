@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   app:
     build: .
@@ -33,6 +31,8 @@ services:
 
   ollama-init:
     image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
     depends_on:
@@ -41,7 +41,7 @@ services:
     entrypoint: [
       "sh",
       "-c",
-      "until OLLAMA_HOST=$$OLLAMA_HOST ollama list >/dev/null 2>&1; do echo 'Waiting for Ollama...'; sleep 2; done; OLLAMA_HOST=$$OLLAMA_HOST ollama pull gemma3:1b"
+      "until OLLAMA_HOST=$$OLLAMA_HOST ollama list >/dev/null 2>&1; do echo 'Waiting for Ollama...'; sleep 2; done; find /root/.ollama -type f -size 0 -delete; until OLLAMA_HOST=$$OLLAMA_HOST ollama pull gemma3:1b; do echo 'Retrying Ollama model pull...'; find /root/.ollama -type f -size 0 -delete; sleep 5; done"
     ]
     restart: "no"
 
