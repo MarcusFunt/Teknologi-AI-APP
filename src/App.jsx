@@ -492,53 +492,56 @@ function App() {
                   </div>
                 </section>
                 <section className="panel detail-panel">
-                  <div className="panel-header">
-                    <div>
+                  <div className="panel-header detail-header">
+                    <div className="detail-header__text">
                       <p className="label subtle">Details</p>
                       <h3>{selectedDateLabel}</h3>
                     </div>
-                    <div className="panel-actions">
+                    <div className="panel-actions detail-header__meta">
                       <div className="pill">{dayEvents.length} items</div>
+                      <p className="hint">Tap a day to update the agenda.</p>
                     </div>
                   </div>
                   <div className="action-card">
-                    <div className="action-card__header">
-                      <div>
+                    <div className="action-card__content">
+                      <div className="action-card__header">
                         <p className="label subtle">Add entry</p>
                         <p className="title">Capture plans quickly</p>
                       </div>
                       <p className="hint">Entries will be attached to {selectedDateLabel}.</p>
                     </div>
-                    <div className="action-grid">
-                      <button type="button" className="primary" onClick={() => openAiModal('add')}>
-                        Add with AI
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => openManualModal('add')}
-                      >
-                        Add manually
-                      </button>
-                    </div>
-                    {selectedDate && (
-                      <div className="action-grid secondary">
-                        <button
-                          type="button"
-                          className="primary ghosty"
-                          onClick={() => openAiModal('edit')}
-                        >
-                          Edit with AI
+                    <div className="action-card__actions">
+                      <div className="action-grid">
+                        <button type="button" className="primary" onClick={() => openAiModal('add')}>
+                          Add with AI
                         </button>
                         <button
                           type="button"
                           className="ghost"
-                          onClick={() => openManualModal('edit')}
+                          onClick={() => openManualModal('add')}
                         >
-                          Edit manually
+                          Add manually
                         </button>
                       </div>
-                    )}
+                      {selectedDate && (
+                        <div className="action-grid secondary">
+                          <button
+                            type="button"
+                            className="primary ghosty"
+                            onClick={() => openAiModal('edit')}
+                          >
+                            Edit with AI
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => openManualModal('edit')}
+                          >
+                            Edit manually
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {error ? (
                     <div className="empty-state">
