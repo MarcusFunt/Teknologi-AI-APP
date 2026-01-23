@@ -2,6 +2,7 @@ import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { ChatOllama } from '@langchain/ollama';
 import { z } from 'zod';
+import { addLog } from '../logsStore.js';
 
 const dateSchema = z
   .string()
@@ -107,6 +108,17 @@ export const planCalendarEdits = async ({ prompt: userPrompt, events }) => {
   const eventsJson = JSON.stringify(events, null, 2);
   const formatInstructions = parser.getFormatInstructions();
 
+  addLog({
+    source: 'ai',
+    level: 'info',
+    message: 'AI request payload',
+    detail: {
+      prompt: userPrompt,
+      events: eventsJson,
+      formatInstructions,
+    },
+  });
+
   const rawResponse = await rawChain.invoke({
     userPrompt,
     events: eventsJson,
@@ -115,15 +127,36 @@ export const planCalendarEdits = async ({ prompt: userPrompt, events }) => {
 
   const rawText = extractContent(rawResponse);
 
+  addLog({
+    source: 'ai',
+    level: 'info',
+    message: 'AI raw response',
+    detail: rawText,
+  });
+
   try {
     return await parser.parse(rawText);
   } catch (error) {
+    addLog({
+      source: 'ai',
+      level: 'warn',
+      message: 'AI response failed schema validation',
+      detail: rawText,
+    });
+
     const fixedResponse = await fixerChain.invoke({
       format_instructions: formatInstructions,
       bad_output: rawText,
     });
 
     const fixedText = extractContent(fixedResponse);
+
+    addLog({
+      source: 'ai',
+      level: 'info',
+      message: 'AI corrected response',
+      detail: fixedText,
+    });
 
     try {
       return await parser.parse(fixedText);

@@ -15,6 +15,7 @@ import {
   getUserById,
 } from './authRepository.js';
 import { planCalendarEdits } from './ai/chain.js';
+import { addLog, getLogs } from './logsStore.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -23,7 +24,47 @@ const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || 'dev-insecure-secret';
 
+const formatConsoleMessage = (args) =>
+  args
+    .map((arg) => {
+      if (typeof arg === 'string') {
+        return arg;
+      }
+
+      try {
+        return JSON.stringify(arg, null, 2);
+      } catch (error) {
+        return `Unserializable value: ${error.message}`;
+      }
+    })
+    .join(' ');
+
+const originalConsole = { ...console };
+['log', 'info', 'warn', 'error', 'debug'].forEach((level) => {
+  console[level] = (...args) => {
+    addLog({
+      source: 'backend',
+      level,
+      message: formatConsoleMessage(args),
+      detail: args,
+    });
+    originalConsole[level](...args);
+  };
+});
+
 app.use(express.json());
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    addLog({
+      source: 'backend',
+      level: 'info',
+      message: `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`,
+    });
+  });
+  next();
+});
 
 const signToken = (user) =>
   jwt.sign(
@@ -56,6 +97,22 @@ const authenticate = (req, res, next) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/api/logs', authenticate, (req, res) => {
+  const sinceId = Number(req.query.sinceId) || 0;
+  res.json({ logs: getLogs({ sinceId }) });
+});
+
+app.post('/api/logs/frontend', authenticate, (req, res) => {
+  const { level = 'info', message, detail } = req.body || {};
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ message: 'message is required.' });
+  }
+
+  addLog({ source: 'frontend', level, message, detail });
+  return res.status(201).json({ status: 'ok' });
 });
 
 app.post('/api/auth/register', async (req, res) => {
