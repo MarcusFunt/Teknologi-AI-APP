@@ -22,7 +22,6 @@ const app = express();
 const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || 'dev-insecure-secret';
-const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${port}`;
 
 app.use(express.json());
 
@@ -146,39 +145,32 @@ app.post('/api/ai/edit', authenticate, async (req, res) => {
     return res.status(400).json({ message: 'prompt is required.' });
   }
 
-  const authHeader = req.headers.authorization;
-
-  const eventsResponse = await fetch(`${apiBaseUrl}/api/events`, {
-    headers: { Authorization: authHeader },
-  });
-
-  if (!eventsResponse.ok) {
-    return res
-      .status(500)
-      .json({ message: 'Failed to load events before calling the AI assistant.' });
-  }
-
-  const { events } = await eventsResponse.json();
+  const events = await getAllEvents(req.userId);
 
   try {
     const plan = await planCalendarEdits({ prompt, events });
 
     let patchResult = { message: 'No operations returned', events };
     if (plan.operations?.length) {
-      const patchResponse = await fetch(`${apiBaseUrl}/api/events/bulk`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
-        },
-        body: JSON.stringify({ operations: plan.operations }),
-      });
-
-      patchResult = await patchResponse.json();
+      try {
+        patchResult = await applyEventOperations(req.userId, plan.operations);
+      } catch (patchError) {
+        console.error('Failed to apply AI operations', patchError);
+        return res.status(500).json({
+          message: 'Failed to apply calendar updates.',
+          error: patchError.message,
+        });
+      }
     }
 
     return res.json({ plan, patchResult });
   } catch (error) {
+    if (error.name === 'AiParseError') {
+      return res.status(422).json({
+        message: 'Could not parse the assistant response. Please rephrase your request.',
+      });
+    }
+
     console.error('AI planner failed', error);
     return res.status(500).json({ message: 'AI planner failed', error: error.message });
   }
