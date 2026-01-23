@@ -3,15 +3,50 @@ import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { ChatOllama } from '@langchain/ollama';
 import { z } from 'zod';
 
-const operationsSchema = z
+const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Dates must be YYYY-MM-DD' });
+const timeSchema = z
+  .string()
+  .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, { message: 'Times must be 24-hour HH:MM' });
+
+const createOperationSchema = z
   .object({
-    action: z.enum(['create', 'update', 'delete']),
-    id: z.number().optional(),
-    title: z.string().optional(),
-    date: z.string().optional(),
-    time: z.string().optional(),
+    action: z.literal('create'),
+    title: z.string().min(1),
+    date: dateSchema,
+    time: timeSchema,
     type: z.string().optional(),
   })
+  .describe('Create a new calendar event');
+
+const updateOperationSchema = z
+  .object({
+    action: z.literal('update'),
+    id: z.number().int().positive(),
+    title: z.string().min(1).optional(),
+    date: dateSchema.optional(),
+    time: timeSchema.optional(),
+    type: z.string().optional(),
+  })
+  .refine((data) => data.title || data.date || data.time || data.type, {
+    message: 'Update requires at least one field to change',
+  })
+  .describe('Update an existing calendar event');
+
+const deleteOperationSchema = z
+  .object({
+    action: z.literal('delete'),
+    id: z.number().int().positive(),
+  })
+  .describe('Delete an existing calendar event');
+
+const operationsSchema = z
+  .discriminatedUnion('action', [
+    createOperationSchema,
+    updateOperationSchema,
+    deleteOperationSchema,
+  ])
   .describe('Calendar adjustment to apply');
 
 const planSchema = z.object({
@@ -39,19 +74,64 @@ Existing events JSON:
 {format_instructions}`);
 
 const model = new ChatOllama({
-  model: 'gemma3:1b',
+  model: process.env.OLLAMA_MODEL || 'gemma3:1b',
   temperature: 0.3,
   baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
 });
 
-const chain = prompt.pipe(model).pipe(parser);
+const rawChain = prompt.pipe(model);
+
+const fixerPrompt = ChatPromptTemplate.fromTemplate(`The following response did not match the required JSON schema.
+Fix it to match the format instructions.
+Return only valid JSON.
+
+Format instructions:
+{format_instructions}
+
+Invalid response:
+{bad_output}`);
+
+const fixerChain = fixerPrompt.pipe(model);
+
+const extractContent = (response) => {
+  if (typeof response === 'string') {
+    return response;
+  }
+  if (response?.content) {
+    return response.content;
+  }
+  return JSON.stringify(response);
+};
 
 export const planCalendarEdits = async ({ prompt: userPrompt, events }) => {
   const eventsJson = JSON.stringify(events, null, 2);
+  const formatInstructions = parser.getFormatInstructions();
 
-  return chain.invoke({
+  const rawResponse = await rawChain.invoke({
     userPrompt,
     events: eventsJson,
-    format_instructions: parser.getFormatInstructions(),
+    format_instructions: formatInstructions,
   });
+
+  const rawText = extractContent(rawResponse);
+
+  try {
+    return await parser.parse(rawText);
+  } catch (error) {
+    const fixedResponse = await fixerChain.invoke({
+      format_instructions: formatInstructions,
+      bad_output: rawText,
+    });
+
+    const fixedText = extractContent(fixedResponse);
+
+    try {
+      return await parser.parse(fixedText);
+    } catch (fixError) {
+      const finalError = new Error('AI response could not be parsed');
+      finalError.name = 'AiParseError';
+      finalError.cause = fixError;
+      throw finalError;
+    }
+  }
 };
