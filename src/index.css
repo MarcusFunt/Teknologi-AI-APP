@@ -615,6 +615,31 @@ button:focus-visible {
   gap: 24px;
 }
 
+.settings-tabs {
+  display: inline-flex;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: #111827;
+  border: 1px solid var(--border);
+  align-self: flex-start;
+}
+
+.settings-tab {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.settings-tab.active {
+  color: #eef2ff;
+  background: rgba(111, 136, 255, 0.25);
+}
+
 .settings-section h3 {
   margin: 0 0 8px;
   color: var(--muted);
@@ -709,6 +734,90 @@ button:focus-visible {
 .setting-item button.secondary-button:hover {
   border-color: rgba(111, 136, 255, 0.5);
   color: #e0e7ff;
+}
+
+.log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.log-feed {
+  display: grid;
+  gap: 12px;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: #0f172a;
+}
+
+.log-entry {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  display: grid;
+  gap: 8px;
+}
+
+.log-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.log-source {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.log-source-frontend {
+  background: rgba(111, 136, 255, 0.22);
+  color: #e0e7ff;
+}
+
+.log-source-backend {
+  background: rgba(70, 193, 183, 0.2);
+  color: #c7f5ef;
+}
+
+.log-source-ai {
+  background: rgba(242, 139, 176, 0.22);
+  color: #ffd2e2;
+}
+
+.log-message {
+  margin: 0;
+  font-size: 14px;
+}
+
+.log-detail {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: var(--muted);
+  background: #0b1220;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
 }
 
 .toggle {

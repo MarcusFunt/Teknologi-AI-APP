@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Settings page for the productivity application.
@@ -12,10 +13,119 @@ import PropTypes from 'prop-types';
  * document.documentElement to drive the CSS variables defined in
  * index.css.
  */
-function SettingsPage({ user, isDarkMode, toggleDarkMode }) {
-  return (
-    <div className="settings-page">
-      <h2>Settings</h2>
+function SettingsPage({
+  user,
+  isDarkMode,
+  toggleDarkMode,
+  authToken,
+  diagnosticLoggingEnabled,
+  onToggleDiagnosticLogging,
+  isWfeMode,
+}) {
+  const [activeTab, setActiveTab] = useState('general');
+  const [logs, setLogs] = useState([]);
+  const [filters, setFilters] = useState({
+    frontend: true,
+    backend: true,
+    ai: true,
+  });
+  const lastLogIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!diagnosticLoggingEnabled) {
+      setActiveTab('general');
+      setLogs([]);
+      lastLogIdRef.current = 0;
+    }
+  }, [diagnosticLoggingEnabled]);
+
+  useEffect(() => {
+    if (!diagnosticLoggingEnabled || !authToken || isWfeMode) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(`/api/logs?sinceId=${lastLogIdRef.current}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch logs');
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data.logs)) {
+          return;
+        }
+
+        if (!isMounted || data.logs.length === 0) {
+          return;
+        }
+
+        setLogs((prev) => [...prev, ...data.logs]);
+        lastLogIdRef.current = data.logs[data.logs.length - 1].id;
+      } catch (error) {
+        if (isMounted) {
+          setLogs((prev) => prev);
+        }
+      }
+    };
+
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 2000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [authToken, diagnosticLoggingEnabled, isWfeMode]);
+
+  const filteredLogs = useMemo(
+    () =>
+      logs.filter((log) => {
+        if (log.source === 'frontend') {
+          return filters.frontend;
+        }
+        if (log.source === 'backend') {
+          return filters.backend;
+        }
+        if (log.source === 'ai') {
+          return filters.ai;
+        }
+        return true;
+      }),
+    [filters, logs],
+  );
+
+  const handleFilterChange = (key) => (event) => {
+    setFilters((prev) => ({ ...prev, [key]: event.target.checked }));
+  };
+
+  const handleExport = () => {
+    const content = filteredLogs
+      .map((log) => {
+        const detail = log.detail ? `\n${log.detail}` : '';
+        return `[${log.timestamp}] [${log.source.toUpperCase()}] ${log.message}${detail}`;
+      })
+      .join('\n\n');
+
+    const blob = new Blob([content || 'No logs available.'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'live-logs.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const showTabs = diagnosticLoggingEnabled;
+  const showLiveLogs = showTabs && activeTab === 'logs';
+
+  const generalContent = (
+    <>
       <section className="settings-section">
         <h3>Appearance</h3>
         <div className="setting-item">
@@ -249,6 +359,119 @@ function SettingsPage({ user, isDarkMode, toggleDarkMode }) {
           </button>
         </div>
       </section>
+      <section className="settings-section">
+        <h3>Diagnostics</h3>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Enable diagnostic logging</span>
+            <span className="setting-description">
+              Capture frontend, backend, and AI traffic for troubleshooting.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="diagnosticLoggingToggle">
+            <input
+              id="diagnosticLoggingToggle"
+              type="checkbox"
+              checked={diagnosticLoggingEnabled}
+              onChange={(event) => onToggleDiagnosticLogging(event.target.checked)}
+              aria-label="Enable diagnostic logging"
+            />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+      </section>
+    </>
+  );
+
+  const renderLogDetail = (detail) => {
+    if (!detail) {
+      return null;
+    }
+
+    return <pre className="log-detail">{detail}</pre>;
+  };
+
+  const liveLogsContent = (
+    <section className="settings-section">
+      <h3>Live logs</h3>
+      <div className="log-toolbar">
+        <div className="log-filters">
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={filters.frontend}
+              onChange={handleFilterChange('frontend')}
+            />
+            Frontend
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={filters.backend}
+              onChange={handleFilterChange('backend')}
+            />
+            Backend
+          </label>
+          <label className="checkbox">
+            <input type="checkbox" checked={filters.ai} onChange={handleFilterChange('ai')} />
+            AI
+          </label>
+        </div>
+        <button type="button" className="secondary-button" onClick={handleExport}>
+          Export .txt
+        </button>
+      </div>
+      {isWfeMode && (
+        <p className="hint">Live logs are unavailable in WFE mode.</p>
+      )}
+      <div className="log-feed">
+        {filteredLogs.length === 0 ? (
+          <p className="hint">No logs yet. Generate activity to see entries here.</p>
+        ) : (
+          filteredLogs.map((log) => (
+            <div key={log.id} className="log-entry">
+              <div className="log-meta">
+                <span className={`log-source log-source-${log.source}`}>{log.source}</span>
+                <span className="log-time">
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+              <p className="log-message">{log.message}</p>
+              {renderLogDetail(log.detail)}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+
+  return (
+    <div className="settings-page">
+      <h2>Settings</h2>
+      {showTabs && (
+        <div className="settings-tabs" role="tablist" aria-label="Settings tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'general'}
+            className={`settings-tab ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('general')}
+          >
+            General
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'logs'}
+            className={`settings-tab ${activeTab === 'logs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('logs')}
+          >
+            Live Logs
+          </button>
+        </div>
+      )}
+      {!showLiveLogs && generalContent}
+      {showLiveLogs && liveLogsContent}
     </div>
   );
 }
@@ -262,4 +485,8 @@ SettingsPage.propTypes = {
   }),
   isDarkMode: PropTypes.bool.isRequired,
   toggleDarkMode: PropTypes.func.isRequired,
+  authToken: PropTypes.string,
+  diagnosticLoggingEnabled: PropTypes.bool.isRequired,
+  onToggleDiagnosticLogging: PropTypes.func.isRequired,
+  isWfeMode: PropTypes.bool,
 };

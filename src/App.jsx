@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoginPage from './pages/LoginPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import { wfeEvents, wfeUser } from './wfeFixtures.js';
@@ -49,6 +49,7 @@ function App() {
   const [aiError, setAiError] = useState('');
   const [isAiRunning, setIsAiRunning] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
+  const [diagnosticLoggingEnabled, setDiagnosticLoggingEnabled] = useState(false);
   const [manualMode, setManualMode] = useState('add');
   const [manualError, setManualError] = useState('');
   const [manualForm, setManualForm] = useState({
@@ -71,6 +72,80 @@ function App() {
     const stored = localStorage.getItem('darkMode');
     return stored === null ? true : stored === 'true';
   });
+  const consoleBackup = useRef(null);
+
+  const sendFrontendLog = useCallback(
+    (level, args) => {
+      if (!diagnosticLoggingEnabled || !authToken || isWfeMode) {
+        return;
+      }
+
+      const serializeArg = (arg) => {
+        if (typeof arg === 'string') {
+          return arg;
+        }
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch (error) {
+          return `Unserializable value: ${error.message}`;
+        }
+      };
+
+      const message = args.map(serializeArg).join(' ');
+
+      fetch('/api/logs/frontend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          level,
+          message,
+          detail: args.map(serializeArg).join('\n'),
+        }),
+      }).catch(() => {});
+    },
+    [authToken, diagnosticLoggingEnabled],
+  );
+
+  useEffect(() => {
+    if (!diagnosticLoggingEnabled || isWfeMode) {
+      if (consoleBackup.current) {
+        Object.assign(console, consoleBackup.current);
+        consoleBackup.current = null;
+      }
+      return undefined;
+    }
+
+    if (!consoleBackup.current) {
+      consoleBackup.current = {
+        log: console.log,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        debug: console.debug,
+      };
+    }
+
+    const wrap = (level) => (...args) => {
+      consoleBackup.current[level](...args);
+      sendFrontendLog(level, args);
+    };
+
+    console.log = wrap('log');
+    console.info = wrap('info');
+    console.warn = wrap('warn');
+    console.error = wrap('error');
+    console.debug = wrap('debug');
+
+    return () => {
+      if (consoleBackup.current) {
+        Object.assign(console, consoleBackup.current);
+        consoleBackup.current = null;
+      }
+    };
+  }, [diagnosticLoggingEnabled, sendFrontendLog]);
 
   useEffect(() => {
     if (isWfeMode) {
@@ -616,7 +691,15 @@ function App() {
             </>
           )}
           {page === 'settings' && (
-            <SettingsPage user={user} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+            <SettingsPage
+              user={user}
+              isDarkMode={isDarkMode}
+              toggleDarkMode={toggleDarkMode}
+              authToken={authToken}
+              diagnosticLoggingEnabled={diagnosticLoggingEnabled}
+              onToggleDiagnosticLogging={setDiagnosticLoggingEnabled}
+              isWfeMode={isWfeMode}
+            />
           )}
           {activeModal && (
             <div className="modal-overlay" role="dialog" aria-modal="true">
