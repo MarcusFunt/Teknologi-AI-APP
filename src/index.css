@@ -631,6 +631,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px 16px;
+  gap: 16px;
 }
 
 .setting-item label {
@@ -642,8 +643,126 @@ button:focus-visible {
   color: var(--text);
 }
 
+.setting-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-title {
+  font-weight: 600;
+}
+
+.setting-description {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-value {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 70px;
+}
+
+.setting-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
 .setting-item input[type="checkbox"] {
   transform: scale(1.2);
+}
+
+.setting-item select,
+.setting-item input[type="range"] {
+  background: #0f172a;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-width: 180px;
+}
+
+.setting-item input[type="range"] {
+  padding: 0;
+  min-width: 160px;
+}
+
+.setting-item button.secondary-button {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setting-item button.secondary-button:hover {
+  border-color: rgba(111, 136, 255, 0.5);
+  color: #e0e7ff;
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-pill {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #0f172a;
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.toggle-pill::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #94a3b8;
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.toggle input:checked + .toggle-pill {
+  background: rgba(111, 136, 255, 0.25);
+  border-color: rgba(111, 136, 255, 0.5);
+}
+
+.toggle input:checked + .toggle-pill::after {
+  transform: translateX(20px);
+  background: #e0e7ff;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .empty-state {
