@@ -29,6 +29,32 @@ function SettingsPage({ user, isDarkMode, toggleDarkMode }) {
             />
           </label>
         </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Compact layout</span>
+            <span className="setting-description">
+              Reduce spacing on dashboard cards and lists.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="compactLayoutToggle">
+            <input id="compactLayoutToggle" type="checkbox" />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Accent theme</span>
+            <span className="setting-description">
+              Choose a highlight color used across charts and action buttons.
+            </span>
+          </div>
+          <select aria-label="Select accent theme">
+            <option>Indigo</option>
+            <option>Emerald</option>
+            <option>Sunrise</option>
+            <option>Slate</option>
+          </select>
+        </div>
       </section>
       <section className="settings-section">
         <h3>Account</h3>
@@ -44,6 +70,184 @@ function SettingsPage({ user, isDarkMode, toggleDarkMode }) {
         ) : (
           <p className="hint">You are not signed in.</p>
         )}
+      </section>
+      <section className="settings-section">
+        <h3>AI Assistant</h3>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Enable AI assistant</span>
+            <span className="setting-description">
+              Allow AI to suggest next steps, summaries, and smart reminders.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="aiAssistantToggle">
+            <input id="aiAssistantToggle" type="checkbox" defaultChecked />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Default AI model</span>
+            <span className="setting-description">
+              Select the model for planning, summaries, and automation drafts.
+            </span>
+          </div>
+          <select aria-label="Select default AI model">
+            <option>Balanced (recommended)</option>
+            <option>Fast draft</option>
+            <option>Deep analysis</option>
+            <option>Local private model</option>
+          </select>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Creativity level</span>
+            <span className="setting-description">
+              Adjust how adventurous AI recommendations should be.
+            </span>
+          </div>
+          <div className="setting-control">
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              defaultValue="3"
+              aria-label="Creativity level"
+            />
+            <span className="setting-value">Balanced</span>
+          </div>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Auto-generate daily summaries</span>
+            <span className="setting-description">
+              Receive a recap each morning of priorities and schedule gaps.
+            </span>
+          </div>
+          <select aria-label="Summary frequency">
+            <option>Every morning at 8:00</option>
+            <option>Weekdays only</option>
+            <option>Weekly on Monday</option>
+            <option>Off</option>
+          </select>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">AI context sources</span>
+            <span className="setting-description">
+              Choose what the assistant can reference when building schedules.
+            </span>
+          </div>
+          <div className="setting-stack">
+            <label className="checkbox">
+              <input type="checkbox" defaultChecked />
+              Calendar history
+            </label>
+            <label className="checkbox">
+              <input type="checkbox" defaultChecked />
+              Task notes
+            </label>
+            <label className="checkbox">
+              <input type="checkbox" />
+              Shared team calendars
+            </label>
+          </div>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Approval required</span>
+            <span className="setting-description">
+              Require confirmation before AI schedules or reschedules events.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="aiApprovalToggle">
+            <input id="aiApprovalToggle" type="checkbox" defaultChecked />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+      </section>
+      <section className="settings-section">
+        <h3>Automation</h3>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Smart focus blocks</span>
+            <span className="setting-description">
+              Automatically reserve focus time after large meetings.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="focusBlocksToggle">
+            <input id="focusBlocksToggle" type="checkbox" defaultChecked />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Conflict resolution</span>
+            <span className="setting-description">
+              Choose how AI handles overlapping events.
+            </span>
+          </div>
+          <select aria-label="Conflict resolution preference">
+            <option>Suggest alternatives</option>
+            <option>Auto-reschedule low priority</option>
+            <option>Always ask me</option>
+          </select>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Reminder cadence</span>
+            <span className="setting-description">
+              Set how early the assistant nudges you before meetings.
+            </span>
+          </div>
+          <select aria-label="Reminder cadence">
+            <option>10 minutes before</option>
+            <option>30 minutes before</option>
+            <option>1 hour before</option>
+            <option>Custom…</option>
+          </select>
+        </div>
+      </section>
+      <section className="settings-section">
+        <h3>Privacy &amp; data</h3>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Data retention</span>
+            <span className="setting-description">
+              Control how long AI retains summaries and activity insights.
+            </span>
+          </div>
+          <select aria-label="Data retention">
+            <option>30 days</option>
+            <option>90 days</option>
+            <option>1 year</option>
+            <option>Keep until deleted</option>
+          </select>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Usage analytics</span>
+            <span className="setting-description">
+              Share anonymous usage metrics to improve AI recommendations.
+            </span>
+          </div>
+          <label className="toggle" htmlFor="analyticsToggle">
+            <input id="analyticsToggle" type="checkbox" />
+            <span className="toggle-pill" aria-hidden="true" />
+          </label>
+        </div>
+        <div className="setting-item">
+          <div className="setting-details">
+            <span className="setting-title">Export AI data</span>
+            <span className="setting-description">
+              Download your AI-generated summaries and planning history.
+            </span>
+          </div>
+          <button type="button" className="secondary-button">
+            Download export
+          </button>
+        </div>
       </section>
     </div>
   );
