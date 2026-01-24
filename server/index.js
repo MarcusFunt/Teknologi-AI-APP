@@ -23,6 +23,8 @@ const app = express();
 const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || 'dev-insecure-secret';
+const serverMode = process.env.SERVER_MODE || 'default';
+const localTunnelEnabled = serverMode === 'localtunnel';
 
 const formatConsoleMessage = (args) =>
   args
@@ -233,6 +235,34 @@ app.post('/api/ai/edit', authenticate, async (req, res) => {
   }
 });
 
+const startLocalTunnel = async () => {
+  const { default: localtunnel } = await import('localtunnel');
+  const tunnel = await localtunnel({
+    port,
+    host: process.env.LOCALTUNNEL_HOST,
+    subdomain: process.env.LOCALTUNNEL_SUBDOMAIN,
+  });
+
+  console.log(`LocalTunnel public URL: ${tunnel.url}`);
+
+  tunnel.on('error', (error) => {
+    console.error('LocalTunnel error', error);
+  });
+
+  const handleShutdown = async () => {
+    try {
+      await tunnel.close();
+    } catch (error) {
+      console.error('Failed to close LocalTunnel', error);
+    } finally {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGINT', handleShutdown);
+  process.on('SIGTERM', handleShutdown);
+};
+
 const start = async () => {
   await ensureAuthSchema();
   await ensureSchema();
@@ -240,6 +270,11 @@ const start = async () => {
 
   app.listen(port, host, () => {
     console.log(`API server listening on http://${host}:${port}`);
+    if (localTunnelEnabled) {
+      startLocalTunnel().catch((error) => {
+        console.error('Failed to start LocalTunnel', error);
+      });
+    }
   });
 };
 

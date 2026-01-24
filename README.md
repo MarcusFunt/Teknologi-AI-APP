@@ -18,6 +18,19 @@ Run the API and frontend together with:
 npm run dev    # starts Express on 4000 and Vite on 5173 with /api proxying
 ```
 
+To expose the API through LocalTunnel (useful for sharing a local dev server), set
+`SERVER_MODE=localtunnel` before starting the server. The backend will print a public URL after it
+boots:
+
+```bash
+SERVER_MODE=localtunnel npm run server
+```
+
+Optional environment variables:
+
+- `LOCALTUNNEL_SUBDOMAIN` — request a specific subdomain.
+- `LOCALTUNNEL_HOST` — override the LocalTunnel host.
+
 For UI-only development, enable the **WFE** (web front end) mode to skip starting the API and use
 built-in fixture data:
 
