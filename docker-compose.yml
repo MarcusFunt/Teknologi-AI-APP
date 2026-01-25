@@ -9,6 +9,9 @@ services:
       - JWT_SECRET=dev-local-secret
       - OLLAMA_BASE_URL=http://ollama:11434
       - API_BASE_URL=http://localhost:4000
+      - SERVER_MODE=${SERVER_MODE:-}
+      - LOCALTUNNEL_SUBDOMAIN=${LOCALTUNNEL_SUBDOMAIN:-}
+      - LOCALTUNNEL_HOST=${LOCALTUNNEL_HOST:-}
     volumes:
       - ./server/data:/app/server/data
     depends_on:
