@@ -26,6 +26,9 @@ boots:
 SERVER_MODE=localtunnel npm run server
 ```
 
+When `SERVER_MODE=localtunnel` is set and the Vite dev server is running (including WFE mode), the
+frontend will also print a LocalTunnel URL so the web UI is reachable remotely.
+
 Optional environment variables:
 
 - `LOCALTUNNEL_SUBDOMAIN` — request a specific subdomain.
