@@ -74,10 +74,15 @@ Existing events JSON:
 
 {format_instructions}`);
 
+const serverMode = process.env.SERVER_MODE || 'default';
+const numGpu = Number.parseInt(process.env.OLLAMA_NUM_GPU || '1', 10);
+const useCuda = serverMode === 'cuda' && Number.isFinite(numGpu) && numGpu > 0;
+
 const model = new ChatOllama({
   model: process.env.OLLAMA_MODEL || 'gemma3:1b',
   temperature: 0.3,
   baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+  ...(useCuda ? { numGpu } : {}),
 });
 
 const rawChain = prompt.pipe(model);

@@ -30,6 +30,8 @@ Optional environment variables:
 
 - `LOCALTUNNEL_SUBDOMAIN` — request a specific subdomain.
 - `LOCALTUNNEL_HOST` — override the LocalTunnel host.
+- `SERVER_MODE=cuda` — enable CUDA acceleration for Ollama requests (defaults to 1 GPU).
+- `OLLAMA_NUM_GPU` — override how many GPUs Ollama should use when `SERVER_MODE=cuda`.
 
 For UI-only development, enable the **WFE** (web front end) mode to skip starting the API and use
 built-in fixture data:
