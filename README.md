@@ -72,6 +72,21 @@ docker compose up --build
 
 The stack exposes Vite on `http://localhost:5173` and the API on `http://localhost:4000`.
 
+### Remote auto-update (server mode)
+
+For a one-command setup that enables the LocalTunnel API URL, starts the Docker stack, and keeps
+watching GitHub for updates (pulling + rebuilding on change), run:
+
+```bash
+./scripts/remote-update.sh
+```
+
+Environment options:
+
+- `POLL_SECONDS` — seconds between update checks (default: `30`).
+- `REBUILD_ON_UPDATE` — set to `0` to restart without rebuilding (default: `1`).
+- `LOCALTUNNEL_SUBDOMAIN` / `LOCALTUNNEL_HOST` — passed through to LocalTunnel.
+
 ### AI copilot & Ollama
 
 LangChain.js powers an on-demand AI editor that can rewrite events and apply the changes via a
