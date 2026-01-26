@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const serverMode = env.SERVER_MODE || 'default';
   const isWfeMode = env.VITE_WFE_MODE === 'true' || env.VITE_WFE_MODE === '1';
+  const defaultWfeTunnelHost = 'https://loca.lt';
+  const defaultWfeTunnelSubdomain = 'clean-carpets-ring';
+  const localTunnelHost =
+    env.LOCALTUNNEL_HOST || (isWfeMode ? defaultWfeTunnelHost : undefined);
+  const localTunnelSubdomain =
+    env.LOCALTUNNEL_SUBDOMAIN || (isWfeMode ? defaultWfeTunnelSubdomain : undefined);
 
   const localTunnelPlugin = () => ({
     name: 'localtunnel-wfe',
@@ -20,8 +26,8 @@ export default defineConfig(({ mode }) => {
         const { default: localtunnel } = await import('localtunnel');
         tunnel = await localtunnel({
           port: server.config.server.port,
-          host: env.LOCALTUNNEL_HOST,
-          subdomain: env.LOCALTUNNEL_SUBDOMAIN,
+          host: localTunnelHost,
+          subdomain: localTunnelSubdomain,
         });
 
         const label = isWfeMode ? 'Vite WFE' : 'Vite';
