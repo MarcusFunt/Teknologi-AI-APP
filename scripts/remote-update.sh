@@ -49,12 +49,12 @@ watch_for_updates() {
 
     if [[ "$local_ref" != "$remote_ref" ]]; then
       if [[ -n "$(git status --porcelain)" ]]; then
-        echo "Local changes detected; skipping update until working tree is clean."
-      else
-        echo "Update detected. Pulling and restarting stack..."
-        git pull --rebase
-        update_stack
+        echo "Local changes detected; discarding to sync with upstream."
       fi
+      echo "Update detected. Syncing with upstream and restarting stack..."
+      git reset --hard @{u}
+      git clean -fd
+      update_stack
     fi
 
     sleep "$POLL_SECONDS"
